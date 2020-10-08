@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"path"
 )
@@ -24,10 +23,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	waitList := NewWaitList()
+	waitList, err := NewWaitList(sourcePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = waitList.Scan()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	waitList.Dump()
 
-	err = db.Walk(sourcePath)
+	err = waitList.Scan()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,14 +45,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, projectName := range db.GetNames() {
-		fmt.Printf("- %s\n", projectName)
-		fileNames, err := db.GetFilenames(projectName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, fileName := range fileNames {
-			fmt.Printf("    - %s\n", fileName)
-		}
-	}
+	// for _, projectName := range db.GetNames() {
+	// 	fmt.Printf("- %s\n", projectName)
+	// 	fileNames, err := db.GetFilenames(projectName)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	for _, fileName := range fileNames {
+	// 		fmt.Printf("    - %s\n", fileName)
+	// 	}
+	// }
 }

@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
-	"time"
 )
 
 // ProjectDatabase is a Project database holder
@@ -121,47 +118,4 @@ func (db *ProjectDatabase) GetFilenames(projectName string) ([]string, error) {
 	}
 
 	return names, nil
-}
-
-// Walk from a startPath directory, building along a ProjectDatabase
-// TODO: move this to the wait list :)
-func (db *ProjectDatabase) Walk(startPath string) error {
-	db.mutex.Lock()
-	defer db.mutex.Unlock()
-
-	err := filepath.Walk(startPath,
-		func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return fmt.Errorf("Walk: %s", err.Error())
-			}
-			if info.IsDir() {
-				return nil
-			}
-
-			relPath := strings.TrimPrefix(path, startPath+"/")
-			dirName := filepath.Dir(relPath)
-			fileName := filepath.Base(relPath)
-
-			project, exists := db.projects[dirName]
-			if !exists {
-				project = &Project{
-					Path:  dirName,
-					Files: make(FileMap),
-				}
-				db.projects[dirName] = project
-			}
-
-			file := &File{
-				Filename: fileName,
-				Path:     relPath,
-				ModTime:  info.ModTime(),
-				Size:     info.Size(),
-				AddedAt:  time.Now(),
-			}
-
-			project.Files[fileName] = file
-
-			return nil
-		})
-	return err
 }

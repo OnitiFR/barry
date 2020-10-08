@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// CreateDirIfNeeded will create the directory if it does not exists
 func CreateDirIfNeeded(path string) error {
 	stat, err := os.Stat(path)
 
@@ -24,4 +25,17 @@ func CreateDirIfNeeded(path string) error {
 	}
 
 	return nil
+}
+
+// IsDir return true if path exists and is a directory
+func IsDir(path string) (bool, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	if !stat.Mode().IsDir() {
+		return false, fmt.Errorf("'%s' in not a directory", path)
+	}
+	return true, nil
 }
