@@ -1,0 +1,10 @@
+# Sample configuration
+
+# Barry will watch this directory, looking for new backups.
+queue_path = "var/queue"
+
+# Barry will keep its data in this directory. It includes internal databases
+# but also local cold storage cache, so you will need free space here.
+# Try to use the same "storage partition" as queue_path, because Barry will
+# move files from queue_path to local_storage_path.
+local_storage_path = "var/storage"

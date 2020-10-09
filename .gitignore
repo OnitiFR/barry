@@ -1,3 +1,6 @@
+etc/barry.toml
+var/*
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

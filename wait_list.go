@@ -60,7 +60,17 @@ func (wl *WaitList) Scan() error {
 			if err != nil {
 				return fmt.Errorf("Walk: %s", err.Error())
 			}
+
 			if info.IsDir() {
+				// reject directories starting with a dot
+				if strings.HasPrefix(info.Name(), ".") {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+
+			// reject files starting with a dot
+			if strings.HasPrefix(info.Name(), ".") {
 				return nil
 			}
 

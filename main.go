@@ -1,46 +1,56 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
-	"path"
+	"os"
 )
 
+var configPath = flag.String("path", "./etc/", "configuration path")
+var configTrace = flag.Bool("trace", false, "show trace message (debug)")
+var configVersion = flag.Bool("version", false, "show version")
+
 func main() {
-	// sourcePath := path.Clean("/home/xfennec/Quiris/Go/src/local/swift///./30-j")
-	// sourcePath := path.Clean(".././/30-j/")
+	flag.Parse()
 
-	sourcePath := path.Clean("../queue")
-	localStoragePath := path.Clean("/home/xfennec/Quiris/Go/src/local/swift/storage")
-	dataBaseFilename := path.Clean("../data/projects.db")
+	if *configVersion == true {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
 
-	err := CreateDirIfNeeded(localStoragePath)
+	config, err := NewAppConfigFromTomlFile(*configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db, err := NewProjectDatabase(dataBaseFilename)
+	app, err := NewApp(config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	waitList, err := NewWaitList(sourcePath)
+	err = app.Init()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = waitList.Scan()
+	// sourcePath := path.Clean("../queue")
+	// localStoragePath := path.Clean("/home/xfennec/Quiris/Go/src/local/swift/storage")
+	// dataBaseFilename := path.Clean("../data/projects.db")
+
+	err = app.WaitList.Scan()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	waitList.Dump()
+	app.WaitList.Dump()
 
-	err = waitList.Scan()
+	err = app.WaitList.Scan()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = db.Save()
+	err = app.ProjectDB.Save()
 	if err != nil {
 		log.Fatal(err)
 	}
