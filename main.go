@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 )
 
 var configPath = flag.String("path", "./etc/", "configuration path")
@@ -38,22 +39,20 @@ func main() {
 	// localStoragePath := path.Clean("/home/xfennec/Quiris/Go/src/local/swift/storage")
 	// dataBaseFilename := path.Clean("../data/projects.db")
 
-	err = app.WaitList.Scan()
-	if err != nil {
-		log.Fatal(err)
+	for {
+		err = app.WaitList.Scan()
+		if err != nil {
+			log.Fatal(err)
+		}
+		time.Sleep(1 * time.Second)
 	}
 
-	app.WaitList.Dump()
+	// app.WaitList.Dump()
 
-	err = app.WaitList.Scan()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = app.ProjectDB.Save()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err = app.ProjectDB.Save()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// for _, projectName := range db.GetNames() {
 	// 	fmt.Printf("- %s\n", projectName)

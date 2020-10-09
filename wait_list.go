@@ -24,6 +24,10 @@ type WaitList struct {
 	mutex     sync.Mutex
 }
 
+// StableDelay determine how long a file should stay the same (mtime+size)
+// to be considered stable.
+const StableDelay = 5 * time.Second
+
 // NewWaitList allocates a new WaitList
 func NewWaitList(watchPath string) (*WaitList, error) {
 	if isDir, err := IsDir(watchPath); !isDir {
@@ -90,13 +94,24 @@ func (wl *WaitList) Scan() error {
 
 			file, fileExists := project.Files[fileName]
 			if fileExists {
-				fmt.Printf("known: %s/%s\n", project.Path, file.Filename)
-				// compare mtime and size between "info" and "file"
-				// if different {
-				//	update info, size and AddedAt
-				// } else {
-				// 	compare Now() and AddedAt to see if it's stable since long enough)
-				//}
+				if file.Status == FileStatusQueued {
+					return nil // already queued, ignore
+				}
+				if !info.ModTime().Equal(file.ModTime) || info.Size() != file.Size {
+					// file changed, continue waiting
+					file.ModTime = info.ModTime()
+					file.Size = info.Size()
+					file.AddedAt = time.Now()
+					fmt.Printf("%s/%s changed, moar waiting\n", dirName, fileName)
+				} else {
+					// are we waiting for long enough?
+					if file.AddedAt.Add(StableDelay).Before(time.Now()) {
+						file.Status = FileStatusQueued
+						fmt.Printf("%s/%s is now candidate\n", dirName, fileName)
+					} else {
+						fmt.Printf("%s/%s still waiting\n", dirName, fileName)
+					}
+				}
 			} else {
 				file := &File{
 					Filename: fileName,
@@ -104,8 +119,10 @@ func (wl *WaitList) Scan() error {
 					ModTime:  info.ModTime(),
 					Size:     info.Size(),
 					AddedAt:  time.Now(),
+					Status:   FileStatusNew,
 				}
 				project.Files[fileName] = file
+				fmt.Printf("%s/%s added to wait queue\n", dirName, fileName)
 			}
 
 			return nil

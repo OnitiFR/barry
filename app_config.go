@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
@@ -54,7 +55,7 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	appConfig.QueuePath = tConfig.QueuePath
+	appConfig.QueuePath = filepath.Clean(tConfig.QueuePath)
 
 	if tConfig.LocalStoragePath == "" {
 		return nil, errors.New("empty local_storage_path")
