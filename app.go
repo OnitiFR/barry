@@ -31,7 +31,7 @@ func (app *App) Init() error {
 	}
 	app.ProjectDB = db
 
-	waitList, err := NewWaitList(app.Config.QueuePath)
+	waitList, err := NewWaitList(app.Config.QueuePath, app.waitListFilter)
 	if err != nil {
 		return err
 	}
@@ -48,4 +48,13 @@ func (app *App) LocalStoragePath(dir string, filename string) (string, error) {
 		return "", nil
 	}
 	return filepath.Clean(path + "/" + filename), nil
+}
+
+// should we add this file to the WaitList ?
+func (app *App) waitListFilter(dirName string, fileName string) bool {
+	if app.ProjectDB.FindFile(dirName, fileName) != nil {
+		// this file is already in the database
+		return false
+	}
+	return true
 }

@@ -9,34 +9,34 @@ import (
 	"time"
 )
 
-// WaitList stores all files of the source path we're waiting for.
-// (waiting means the fime must be stable [no change of size of mtime] for
-// a determined period of time)
-type WaitList struct {
-	// liste de File ou de Project ?
-	// - de projets (et on se fait un accesseur pour avoir la liste de tt les fichiers à plat ?)
-	// qui construit la liste des projets de project_db du coup ? (et elle se rebuild seule si on la modifie?)
-	// - le passage de la waitlist à project_db
-	// est-ce qu'on a besoin de la notion de projet dans l'outil du coup ? (ou simple filtre sur le path)
-	// - oui pour avoir un jour des params spécifiques à un projet
-	watchPath string
-	projects  ProjectMap
-	mutex     sync.Mutex
-}
-
 // StableDelay determine how long a file should stay the same (mtime+size)
 // to be considered stable.
 const StableDelay = 5 * time.Second
 
+// WaitList stores all files of the source path we're waiting for.
+// (waiting means the fime must be stable [no change of size of mtime] for
+// a determined period of time)
+type WaitList struct {
+	watchPath  string
+	projects   ProjectMap
+	filterFunc WaitListFilterFunc
+	mutex      sync.Mutex
+}
+
+// WaitListFilterFunc is used to filter incomming files
+// return true to add the file to the WaitList, false to reject it
+type WaitListFilterFunc func(dirName string, fileName string) bool
+
 // NewWaitList allocates a new WaitList
-func NewWaitList(watchPath string) (*WaitList, error) {
+func NewWaitList(watchPath string, filterFunc WaitListFilterFunc) (*WaitList, error) {
 	if isDir, err := IsDir(watchPath); !isDir {
 		return nil, fmt.Errorf("unable to watch directory '%s': %s", watchPath, err)
 	}
 
 	return &WaitList{
-		watchPath: watchPath,
-		projects:  make(ProjectMap),
+		watchPath:  watchPath,
+		projects:   make(ProjectMap),
+		filterFunc: filterFunc,
 	}, nil
 }
 
@@ -82,6 +82,11 @@ func (wl *WaitList) Scan() error {
 			dirName := filepath.Dir(relPath)
 			fileName := filepath.Base(relPath)
 
+			// apply filter
+			if wl.filterFunc != nil && wl.filterFunc(dirName, fileName) == false {
+				return nil
+			}
+
 			project, projectExists := wl.projects[dirName]
 
 			if !projectExists {
@@ -107,7 +112,7 @@ func (wl *WaitList) Scan() error {
 					// are we waiting for long enough?
 					if file.AddedAt.Add(StableDelay).Before(time.Now()) {
 						file.Status = FileStatusQueued
-						fmt.Printf("%s/%s is now candidate\n", dirName, fileName)
+						fmt.Printf("%s/%s will be uploaded\n", dirName, fileName)
 					} else {
 						fmt.Printf("%s/%s still waiting\n", dirName, fileName)
 					}

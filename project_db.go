@@ -119,3 +119,20 @@ func (db *ProjectDatabase) GetFilenames(projectName string) ([]string, error) {
 
 	return names, nil
 }
+
+// FindFile finds a file based on projectName and its fileName
+func (db *ProjectDatabase) FindFile(projectName string, fileName string) *File {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	project, pExists := db.projects[projectName]
+	if !pExists {
+		return nil
+	}
+
+	file, fExists := project.Files[fileName]
+	if !fExists {
+		return nil
+	}
+	return file
+}
