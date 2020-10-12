@@ -20,6 +20,7 @@ type WaitList struct {
 	watchPath  string
 	projects   ProjectMap
 	filterFunc WaitListFilterFunc
+	queueFunc  WaitListQueueFunc
 	mutex      sync.Mutex
 }
 
@@ -27,8 +28,12 @@ type WaitList struct {
 // return true to add the file to the WaitList, false to reject it
 type WaitListFilterFunc func(dirName string, fileName string) bool
 
+// WaitListQueueFunc is called when a new file is ready and has been
+// queued in the WaitList. Called as a goroutine.
+type WaitListQueueFunc func(projectName string, file *File)
+
 // NewWaitList allocates a new WaitList
-func NewWaitList(watchPath string, filterFunc WaitListFilterFunc) (*WaitList, error) {
+func NewWaitList(watchPath string, filterFunc WaitListFilterFunc, queueFunc WaitListQueueFunc) (*WaitList, error) {
 	if isDir, err := IsDir(watchPath); !isDir {
 		return nil, fmt.Errorf("unable to watch directory '%s': %s", watchPath, err)
 	}
@@ -83,7 +88,7 @@ func (wl *WaitList) Scan() error {
 			fileName := filepath.Base(relPath)
 
 			// apply filter
-			if wl.filterFunc != nil && wl.filterFunc(dirName, fileName) == false {
+			if wl.filterFunc(dirName, fileName) == false {
 				return nil
 			}
 
@@ -112,7 +117,8 @@ func (wl *WaitList) Scan() error {
 					// are we waiting for long enough?
 					if file.AddedAt.Add(StableDelay).Before(time.Now()) {
 						file.Status = FileStatusQueued
-						fmt.Printf("%s/%s will be uploaded\n", dirName, fileName)
+						go wl.queueFunc(project.Path, file)
+						fmt.Printf("%s/%s is ready, queued\n", dirName, fileName)
 					} else {
 						fmt.Printf("%s/%s still waiting\n", dirName, fileName)
 					}

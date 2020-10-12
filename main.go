@@ -35,10 +35,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// sourcePath := path.Clean("../queue")
-	// localStoragePath := path.Clean("/home/xfennec/Quiris/Go/src/local/swift/storage")
-	// dataBaseFilename := path.Clean("../data/projects.db")
-
 	for {
 		err = app.WaitList.Scan()
 		if err != nil {

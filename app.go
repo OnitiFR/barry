@@ -31,7 +31,7 @@ func (app *App) Init() error {
 	}
 	app.ProjectDB = db
 
-	waitList, err := NewWaitList(app.Config.QueuePath, app.waitListFilter)
+	waitList, err := NewWaitList(app.Config.QueuePath, app.waitListFilter, app.queueFile)
 	if err != nil {
 		return err
 	}
@@ -57,4 +57,10 @@ func (app *App) waitListFilter(dirName string, fileName string) bool {
 		return false
 	}
 	return true
+}
+
+func (app *App) queueFile(projectName string, file *File) {
+	// send to/wait upload worker
+	// what about errors? the file should return to the queue?
+	// - we set its status back? retry from here?
 }
