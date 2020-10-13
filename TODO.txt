@@ -2,7 +2,12 @@
 - upload
 - move file to storage
 - local storage expiration
+- alerts
 - API server
 - list projects
 - list files
 - get file
+
+### TODO
+
+- allow Swift config from env

@@ -1,4 +1,5 @@
 # Sample configuration
+# This use default values, except for settings with "***"
 
 # Barry will watch this directory, looking for new backups.
 queue_path = "var/queue"
@@ -11,3 +12,14 @@ local_storage_path = "var/storage"
 
 # Maximum files to upload at the same time
 num_uploaders = 2
+
+# Swift API settings, currently tested only with auth V3 style, older
+# versions and environment reading are in the TODO.
+[swift]
+username = "***"
+api_key = "***" # "password" in older auth
+auth_url = "***"
+domain = "Default" # specific to V3 auth
+region = "***"
+container = "***"
+chunck_size = "512M" # large objects are split

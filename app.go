@@ -11,6 +11,7 @@ type App struct {
 	ProjectDB *ProjectDatabase
 	WaitList  *WaitList
 	Uploader  *Uploader
+	Swift     *Swift
 }
 
 // NewApp create a new application
@@ -40,6 +41,11 @@ func (app *App) Init() error {
 		return err
 	}
 	app.WaitList = waitList
+
+	app.Swift, err = NewSwift(app.Config.Swift)
+	if err != nil {
+		return err
+	}
 
 	app.Uploader = NewUploader(app.Config.NumUploaders)
 

@@ -14,6 +14,7 @@ type AppConfig struct {
 	QueuePath        string
 	LocalStoragePath string
 	NumUploaders     int
+	Swift            *SwiftConfig
 	configPath       string
 }
 
@@ -21,6 +22,7 @@ type tomlAppConfig struct {
 	QueuePath        string `toml:"queue_path"`
 	LocalStoragePath string `toml:"local_storage_path"`
 	NumUploaders     int    `toml:"num_uploaders"`
+	swift            *tomlSwiftConfig
 }
 
 // NewAppConfigFromTomlFile return a AppConfig using a TOML file in configPath
@@ -73,6 +75,11 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		return nil, errors.New("at least one uploader is needed (num_uploaders setting)")
 	}
 	appConfig.NumUploaders = tConfig.NumUploaders
+
+	appConfig.Swift, err = NewSwiftConfigFromToml(tConfig.swift)
+	if err != nil {
+		return nil, err
+	}
 
 	return appConfig, nil
 }
