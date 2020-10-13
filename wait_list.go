@@ -30,7 +30,7 @@ type WaitListFilterFunc func(dirName string, fileName string) bool
 
 // WaitListQueueFunc is called when a new file is ready and has been
 // queued in the WaitList. Called as a goroutine.
-type WaitListQueueFunc func(projectName string, file *File)
+type WaitListQueueFunc func(projectName string, file File)
 
 // NewWaitList allocates a new WaitList
 func NewWaitList(watchPath string, filterFunc WaitListFilterFunc, queueFunc WaitListQueueFunc) (*WaitList, error) {
@@ -42,6 +42,7 @@ func NewWaitList(watchPath string, filterFunc WaitListFilterFunc, queueFunc Wait
 		watchPath:  watchPath,
 		projects:   make(ProjectMap),
 		filterFunc: filterFunc,
+		queueFunc:  queueFunc,
 	}, nil
 }
 
@@ -95,10 +96,7 @@ func (wl *WaitList) Scan() error {
 			project, projectExists := wl.projects[dirName]
 
 			if !projectExists {
-				project = &Project{
-					Path:  dirName,
-					Files: make(FileMap),
-				}
+				project = NewProject(dirName)
 				wl.projects[dirName] = project
 			}
 
@@ -117,7 +115,7 @@ func (wl *WaitList) Scan() error {
 					// are we waiting for long enough?
 					if file.AddedAt.Add(StableDelay).Before(time.Now()) {
 						file.Status = FileStatusQueued
-						go wl.queueFunc(project.Path, file)
+						go wl.queueFunc(project.Path, *file)
 						fmt.Printf("%s/%s is ready, queued\n", dirName, fileName)
 					} else {
 						fmt.Printf("%s/%s still waiting\n", dirName, fileName)

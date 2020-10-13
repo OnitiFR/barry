@@ -8,3 +8,6 @@ queue_path = "var/queue"
 # Try to use the same "storage partition" as queue_path, because Barry will
 # move files from queue_path to local_storage_path.
 local_storage_path = "var/storage"
+
+# Maximum files to upload at the same time
+num_uploaders = 2

@@ -13,12 +13,14 @@ import (
 type AppConfig struct {
 	QueuePath        string
 	LocalStoragePath string
+	NumUploaders     int
 	configPath       string
 }
 
 type tomlAppConfig struct {
 	QueuePath        string `toml:"queue_path"`
 	LocalStoragePath string `toml:"local_storage_path"`
+	NumUploaders     int    `toml:"num_uploaders"`
 }
 
 // NewAppConfigFromTomlFile return a AppConfig using a TOML file in configPath
@@ -33,6 +35,7 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 	tConfig := &tomlAppConfig{
 		QueuePath:        "var/queue",
 		LocalStoragePath: "var/storage",
+		NumUploaders:     2,
 	}
 
 	meta, err := toml.DecodeFile(filename, tConfig)
@@ -54,7 +57,6 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 	if isDir, err := IsDir(tConfig.QueuePath); !isDir {
 		return nil, err
 	}
-
 	appConfig.QueuePath = filepath.Clean(tConfig.QueuePath)
 
 	if tConfig.LocalStoragePath == "" {
@@ -65,8 +67,12 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	appConfig.LocalStoragePath = tConfig.LocalStoragePath
+
+	if tConfig.NumUploaders < 1 {
+		return nil, errors.New("at least one uploader is needed (num_uploaders setting)")
+	}
+	appConfig.NumUploaders = tConfig.NumUploaders
 
 	return appConfig, nil
 }

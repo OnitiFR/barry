@@ -1,12 +1,16 @@
 package main
 
-import "path/filepath"
+import (
+	"fmt"
+	"path/filepath"
+)
 
 // App describes an application
 type App struct {
 	Config    *AppConfig
 	ProjectDB *ProjectDatabase
 	WaitList  *WaitList
+	Uploader  *Uploader
 }
 
 // NewApp create a new application
@@ -37,6 +41,11 @@ func (app *App) Init() error {
 	}
 	app.WaitList = waitList
 
+	app.Uploader = NewUploader(app.Config.NumUploaders)
+
+	// start services
+	app.Uploader.Start()
+
 	return nil
 }
 
@@ -59,8 +68,24 @@ func (app *App) waitListFilter(dirName string, fileName string) bool {
 	return true
 }
 
-func (app *App) queueFile(projectName string, file *File) {
-	// send to/wait upload worker
+func (app *App) queueFile(projectName string, file File) {
+	file.Status = FileStatusUploading
+
+	upload := NewUpload(projectName, &file)
+
+	// send to and wait upload worker
+	app.Uploader.Channel <- upload
+	err := <-upload.Result
+
 	// what about errors? the file should return to the queue?
 	// - we set its status back? retry from here?
+	if err != nil {
+		fmt.Printf("upload error: %s\n", err)
+		return
+	}
+
+	file.Status = FileStatusUploaded
+
+	// add to database
+	app.ProjectDB.AddFile(projectName, &file)
 }

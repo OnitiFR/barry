@@ -136,3 +136,26 @@ func (db *ProjectDatabase) FindFile(projectName string, fileName string) *File {
 	}
 	return file
 }
+
+// AddFile will add a file to the database to a specific project
+func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	project, projectExists := db.projects[projectName]
+
+	if !projectExists {
+		project = NewProject(projectName)
+		db.projects[projectName] = project
+	}
+
+	_, fileExists := project.Files[file.Filename]
+	if fileExists {
+		return fmt.Errorf("file '%s' already exists in database for project '%s", file.Filename, projectName)
+	}
+
+	project.Files[file.Filename] = file
+	fmt.Printf("%s/%s added to ProjectDatabase\n", projectName, file.Filename)
+
+	return nil
+}

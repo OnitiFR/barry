@@ -9,3 +9,11 @@ type Project struct {
 
 // ProjectMap is a map of Project
 type ProjectMap map[string]*Project
+
+// NewProject create a new Project struct
+func NewProject(path string) *Project {
+	return &Project{
+		Path:  path,
+		Files: make(FileMap),
+	}
+}
