@@ -24,13 +24,15 @@ type Upload struct {
 type Uploader struct {
 	NumWorkers int
 	Channel    chan *Upload
+	Swift      *Swift
 }
 
 // NewUploader initialize a new instance
-func NewUploader(numWorkers int) *Uploader {
+func NewUploader(numWorkers int, swift *Swift) *Uploader {
 	return &Uploader{
 		NumWorkers: numWorkers,
 		Channel:    make(chan *Upload, numWorkers),
+		Swift:      swift,
 	}
 }
 
@@ -73,6 +75,7 @@ func (up *Uploader) worker(id int) {
 
 	fmt.Printf("worker %d: uploading %s\n", id, upload.File.Filename)
 	time.Sleep(3 * time.Second)
+	// up.Swift.Upload(file, deleteAfter)
 
 	fmt.Printf("worker %d: done %s\n", id, upload.File.Filename)
 }

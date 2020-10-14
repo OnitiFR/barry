@@ -47,7 +47,7 @@ func (app *App) Init() error {
 		return err
 	}
 
-	app.Uploader = NewUploader(app.Config.NumUploaders)
+	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift)
 
 	// start services
 	app.Uploader.Start()
