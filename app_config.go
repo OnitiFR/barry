@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/c2h5oh/datasize"
 )
 
 // AppConfig describes the general configuration of an App
@@ -22,7 +23,7 @@ type tomlAppConfig struct {
 	QueuePath        string `toml:"queue_path"`
 	LocalStoragePath string `toml:"local_storage_path"`
 	NumUploaders     int    `toml:"num_uploaders"`
-	swift            *tomlSwiftConfig
+	Swift            *tomlSwiftConfig
 }
 
 // NewAppConfigFromTomlFile return a AppConfig using a TOML file in configPath
@@ -38,6 +39,10 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		QueuePath:        "var/queue",
 		LocalStoragePath: "var/storage",
 		NumUploaders:     2,
+		Swift: &tomlSwiftConfig{
+			Domain:    "Default",
+			ChunkSize: 512 * datasize.MB,
+		},
 	}
 
 	meta, err := toml.DecodeFile(filename, tConfig)
@@ -76,7 +81,7 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 	}
 	appConfig.NumUploaders = tConfig.NumUploaders
 
-	appConfig.Swift, err = NewSwiftConfigFromToml(tConfig.swift)
+	appConfig.Swift, err = NewSwiftConfigFromToml(tConfig.Swift)
 	if err != nil {
 		return nil, err
 	}

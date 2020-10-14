@@ -22,4 +22,4 @@ auth_url = "***"
 domain = "Default" # specific to V3 auth
 region = "***"
 container = "***"
-chunck_size = "512M" # large objects are split
+chunk_size = "512M" # large objects are split

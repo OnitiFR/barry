@@ -1,22 +1,25 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/c2h5oh/datasize"
 	"github.com/ncw/swift"
 )
 
 type tomlSwiftConfig struct {
-	UserName  string `toml:"username"`
-	APIKey    string `toml:"api_key"`
-	AuthURL   string `toml:"auth_url"`
-	Domain    string `toml:"domain"`
-	Region    string `toml:"region"`
-	Container string `toml:"container"`
-	ChunkSize string `toml:"chunk_size"`
+	UserName  string            `toml:"username"`
+	APIKey    string            `toml:"api_key"`
+	AuthURL   string            `toml:"auth_url"`
+	Domain    string            `toml:"domain"`
+	Region    string            `toml:"region"`
+	Container string            `toml:"container"`
+	ChunkSize datasize.ByteSize `toml:"chunk_size"`
 }
 
 // SwiftConfig stores final settings for Swift
@@ -50,9 +53,43 @@ func NewSwift(config *SwiftConfig) (*Swift, error) {
 
 // NewSwiftConfigFromToml will check tomlSwiftConfig and create a SwiftConfig
 func NewSwiftConfigFromToml(tConfig *tomlSwiftConfig) (*SwiftConfig, error) {
-	// TODO: write the function ;)
-	// convert chunksize from string to int64
-	return nil, nil
+	config := &SwiftConfig{}
+
+	if tConfig.UserName == "" {
+		return nil, errors.New("swift username setting cannot be empty")
+	}
+	config.UserName = tConfig.UserName
+
+	if tConfig.APIKey == "" {
+		return nil, errors.New("swift api_key setting cannot be empty")
+	}
+	config.APIKey = tConfig.APIKey
+
+	if tConfig.AuthURL == "" {
+		return nil, errors.New("swift auth_url setting cannot be empty")
+	}
+	config.AuthURL = tConfig.AuthURL
+
+	if tConfig.Domain == "" {
+		return nil, errors.New("swift domain setting cannot be empty")
+	}
+	config.Domain = tConfig.Domain
+
+	if tConfig.Region == "" {
+		return nil, errors.New("swift region setting cannot be empty")
+	}
+	config.Region = tConfig.Region
+
+	if tConfig.Container == "" {
+		return nil, errors.New("swift container setting cannot be empty")
+	}
+	config.Container = tConfig.Container
+
+	if tConfig.ChunkSize < 1*datasize.MB {
+		return nil, fmt.Errorf("chuck_size is to small (%s), use at least 1MB", tConfig.ChunkSize)
+	}
+
+	return config, nil
 }
 
 // Connect and authenticate to the Swift API
