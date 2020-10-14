@@ -71,11 +71,11 @@ func (up *Uploader) worker(id int) {
 	upload.Tries++
 	upload.LastTry = time.Now()
 
-	// upload.LastError = nil
-
 	fmt.Printf("worker %d: uploading %s\n", id, upload.File.Filename)
-	time.Sleep(3 * time.Second)
-	// up.Swift.Upload(file, deleteAfter)
-
-	fmt.Printf("worker %d: done %s\n", id, upload.File.Filename)
+	err = up.Swift.Upload(upload.File, 1*time.Hour)
+	if err != nil {
+		fmt.Printf("worker %d: error with %s: %s\n", id, upload.File.Filename, err)
+	} else {
+		fmt.Printf("worker %d: done %s\n", id, upload.File.Filename)
+	}
 }

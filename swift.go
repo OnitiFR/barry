@@ -111,6 +111,7 @@ func (s *Swift) connect() error {
 
 // Upload a local file to Swift provider
 func (s *Swift) Upload(file *File, deleteAfter time.Duration) error {
+	// TODO: shift path to var (we need appconfig)
 	source, err := os.Open(file.Path)
 	if err != nil {
 		return err
