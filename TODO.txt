@@ -1,7 +1,6 @@
-- move file to storage
-- local storage expiration
 - log
 - alerts / notifications
+--- first production run ? ---
 - API server
 - list projects
 - list files

@@ -12,14 +12,16 @@ const (
 
 // File is a file in our DB (final leaf)
 type File struct {
-	Filename     string
-	Path         string
-	ModTime      time.Time
-	Size         int64
-	AddedAt      time.Time
-	Status       string
-	ExpireLocal  time.Time
-	ExpireRemote time.Time
+	Filename      string
+	Path          string
+	ModTime       time.Time
+	Size          int64
+	AddedAt       time.Time
+	Status        string
+	ExpireLocal   time.Time
+	ExpireRemote  time.Time
+	ExpiredLocal  bool
+	ExpiredRemote bool
 }
 
 // FileMap is a map of File

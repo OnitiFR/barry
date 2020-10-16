@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+// FileStorageName is the name of the storage sub-directory
+// where local files are stored
+const FileStorageName = "files"
+
 // App describes an application
 type App struct {
 	Config    *AppConfig
@@ -32,7 +36,12 @@ func (app *App) Init() error {
 		return err
 	}
 
-	db, err := NewProjectDatabase(dataBaseFilename)
+	localStoragePath, err := app.LocalStoragePath(FileStorageName, "")
+	if err != nil {
+		return err
+	}
+
+	db, err := NewProjectDatabase(dataBaseFilename, localStoragePath)
 	if err != nil {
 		return err
 	}
@@ -53,6 +62,7 @@ func (app *App) Init() error {
 
 	// start services
 	app.Uploader.Start()
+	go app.ProjectDB.ScheduleExpireFiles()
 
 	return nil
 }
@@ -71,7 +81,7 @@ func (app *App) LocalStoragePath(dir string, filename string) (string, error) {
 // MoveFileToStorage will move a file from the queue to our storage
 func (app *App) MoveFileToStorage(file *File) error {
 	source := filepath.Clean(app.Config.QueuePath + "/" + file.Path)
-	dest, err := app.LocalStoragePath("files", file.Path)
+	dest, err := app.LocalStoragePath(FileStorageName, file.Path)
 	if err != nil {
 		return err
 	}

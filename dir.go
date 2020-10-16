@@ -55,6 +55,7 @@ func AreDirsOnSameDevice(path1, path2 string) (bool, error) {
 	}
 	f1.Close()
 
+	// will fail if the file is successfully moved below ;)
 	defer os.Remove(file1)
 
 	// check that we're able to write in path2
@@ -75,6 +76,12 @@ func AreDirsOnSameDevice(path1, path2 string) (bool, error) {
 	err = os.Rename(file1, file2)
 	if err != nil {
 		return false, nil
+	}
+
+	// remove the moved file
+	err = os.Remove(file2)
+	if err != nil {
+		return false, err
 	}
 
 	return true, nil

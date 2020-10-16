@@ -4,22 +4,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"sort"
 	"sync"
+	"time"
 )
+
+// CheckExpireEvery is the delay between each expire task
+const CheckExpireEvery = 15 * time.Minute
 
 // ProjectDatabase is a Project database holder
 type ProjectDatabase struct {
-	filename string
-	projects ProjectMap
-	mutex    sync.Mutex
+	filename         string
+	localStoragePath string
+	projects         ProjectMap
+	mutex            sync.Mutex
 }
 
 // NewProjectDatabase allocates a new ProjectDatabase
-func NewProjectDatabase(filename string) (*ProjectDatabase, error) {
+func NewProjectDatabase(filename string, localStoragePath string) (*ProjectDatabase, error) {
 	db := &ProjectDatabase{
-		filename: filename,
-		projects: make(ProjectMap),
+		filename:         filename,
+		localStoragePath: localStoragePath,
+		projects:         make(ProjectMap),
 	}
 	// if the file exists, load it
 	if _, err := os.Stat(db.filename); err == nil {
@@ -164,4 +171,102 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 	fmt.Printf("%s/%s added to ProjectDatabase\n", projectName, file.Filename)
 
 	return nil
+}
+
+// ScheduleExpireFiles will schedule file expiration tasks (call as a goroutine)
+func (db *ProjectDatabase) ScheduleExpireFiles() {
+	for {
+		db.expireLocalFiles()
+		db.expireRemoteFiles()
+		db.expireClean()
+		time.Sleep(CheckExpireEvery)
+	}
+}
+
+// ExpireLocalFiles will scan the database, deleting expired files in local storage
+func (db *ProjectDatabase) expireLocalFiles() {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	dbModified := false
+
+	for _, project := range db.projects {
+		for _, file := range project.Files {
+			if time.Now().After(file.ExpireLocal) && !file.ExpiredLocal {
+				filePath := path.Clean(db.localStoragePath + "/" + file.Path)
+
+				// deleting file in a subroutine, because it may take quite some time
+				// and we're locking the mutex. We'll deal with errors on our own.
+				// TODO: deal with errors ;)
+				go func(filePath string) {
+					fmt.Printf("deleting local storage file '%s'\n", file.Path)
+					err := os.Remove(filePath)
+					if err != nil {
+						fmt.Printf("error deleting local storage file: %s\n", err)
+					}
+				}(filePath)
+
+				file.ExpiredLocal = true
+				dbModified = true
+			}
+		}
+	}
+
+	if dbModified == true {
+		err := db.save()
+		if err != nil {
+			fmt.Printf("error saving database: %s\n", err)
+		}
+	}
+}
+
+// expireRemoteFiles will scan the database, marking expired remote entries
+func (db *ProjectDatabase) expireRemoteFiles() {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	dbModified := false
+
+	for _, project := range db.projects {
+		for _, file := range project.Files {
+			if time.Now().After(file.ExpireRemote) && !file.ExpiredRemote {
+				file.ExpiredRemote = true
+				dbModified = true
+				fmt.Printf("remote file '%s' marked as expired\n", file.Path)
+			}
+		}
+	}
+
+	if dbModified == true {
+		err := db.save()
+		if err != nil {
+			fmt.Printf("error saving database: %s\n", err)
+		}
+	}
+}
+
+// expireClean will removed expired entries from database
+// TODO: remove empty projets
+func (db *ProjectDatabase) expireClean() {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	dbModified := false
+
+	for _, project := range db.projects {
+		for fileKey, file := range project.Files {
+			if file.ExpiredLocal && file.ExpiredRemote {
+				dbModified = true
+				delete(project.Files, fileKey)
+				fmt.Printf("file '%s' removed from databse\n", file.Path)
+			}
+		}
+	}
+
+	if dbModified == true {
+		err := db.save()
+		if err != nil {
+			fmt.Printf("error saving database: %s\n", err)
+		}
+	}
 }
