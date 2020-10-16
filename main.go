@@ -30,7 +30,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = app.Init()
+	err = app.Init(*configTrace)
 	if err != nil {
 		log.Fatal(err)
 	}

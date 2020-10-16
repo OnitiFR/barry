@@ -11,13 +11,18 @@ import (
 // where local files are stored
 const FileStorageName = "files"
 
+// LogHistorySize is the maximum number of messages in app log history
+const LogHistorySize = 5000
+
 // App describes an application
 type App struct {
-	Config    *AppConfig
-	ProjectDB *ProjectDatabase
-	WaitList  *WaitList
-	Uploader  *Uploader
-	Swift     *Swift
+	Config     *AppConfig
+	ProjectDB  *ProjectDatabase
+	WaitList   *WaitList
+	Uploader   *Uploader
+	Swift      *Swift
+	Log        *Log
+	LogHistory *LogHistory
 }
 
 // NewApp create a new application
@@ -30,7 +35,11 @@ func NewApp(config *AppConfig) (*App, error) {
 }
 
 // Init the application
-func (app *App) Init() error {
+func (app *App) Init(trace bool) error {
+	app.LogHistory = NewLogHistory(LogHistorySize)
+	app.Log = NewLog(trace, app.LogHistory)
+	app.Log.Trace(MsgGlob, "log system available")
+
 	dataBaseFilename, err := app.LocalStoragePath("data", "projects.db")
 	if err != nil {
 		return err
