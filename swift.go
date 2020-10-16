@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strconv"
 	"time"
 
@@ -35,12 +36,12 @@ type SwiftConfig struct {
 
 // Swift host connection and configuration
 type Swift struct {
-	Config *SwiftConfig
+	Config *AppConfig
 	Conn   swift.Connection
 }
 
 // NewSwift will create a new Swift instance from config
-func NewSwift(config *SwiftConfig) (*Swift, error) {
+func NewSwift(config *AppConfig) (*Swift, error) {
 	swift := &Swift{
 		Config: config,
 	}
@@ -95,11 +96,11 @@ func NewSwiftConfigFromToml(tConfig *tomlSwiftConfig) (*SwiftConfig, error) {
 // Connect and authenticate to the Swift API
 func (s *Swift) connect() error {
 	s.Conn = swift.Connection{
-		UserName: s.Config.UserName,
-		ApiKey:   s.Config.APIKey,
-		AuthUrl:  s.Config.AuthURL,
-		Domain:   s.Config.Domain,
-		Region:   s.Config.Region,
+		UserName: s.Config.Swift.UserName,
+		ApiKey:   s.Config.Swift.APIKey,
+		AuthUrl:  s.Config.Swift.AuthURL,
+		Domain:   s.Config.Swift.Domain,
+		Region:   s.Config.Swift.Region,
 	}
 
 	err := s.Conn.Authenticate()
@@ -111,8 +112,8 @@ func (s *Swift) connect() error {
 
 // Upload a local file to Swift provider
 func (s *Swift) Upload(file *File, deleteAfter time.Duration) error {
-	// TODO: shift path to var (we need appconfig)
-	source, err := os.Open(file.Path)
+	sourcePath := path.Clean(s.Config.QueuePath + "/" + file.Path)
+	source, err := os.Open(sourcePath)
 	if err != nil {
 		return err
 	}
@@ -121,9 +122,9 @@ func (s *Swift) Upload(file *File, deleteAfter time.Duration) error {
 	deleteAfterSeconds := int(deleteAfter / time.Second)
 
 	dest, err := s.Conn.DynamicLargeObjectCreate(&swift.LargeObjectOpts{
-		Container:  s.Config.Container,
+		Container:  s.Config.Swift.Container,
 		ObjectName: file.Path,
-		ChunkSize:  s.Config.ChunckSize,
+		ChunkSize:  s.Config.Swift.ChunckSize,
 		Headers: swift.Headers{
 			"X-Delete-After": strconv.Itoa(deleteAfterSeconds),
 		},

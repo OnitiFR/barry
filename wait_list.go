@@ -61,6 +61,7 @@ func (wl *WaitList) Dump() {
 }
 
 // Scan the source directory to detect new files and add them to the list
+// TODO: delete files from the list when they're not found anymore during scans (it's a memory issue)
 func (wl *WaitList) Scan() error {
 	wl.mutex.Lock()
 	defer wl.mutex.Unlock()

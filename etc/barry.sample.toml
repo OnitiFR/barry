@@ -6,8 +6,8 @@ queue_path = "var/queue"
 
 # Barry will keep its data in this directory. It includes internal databases
 # but also local cold storage cache, so you will need free space here.
-# Try to use the same "storage partition" as queue_path, because Barry will
-# move files from queue_path to local_storage_path.
+# You must use the same "system storage partition" as queue_path, because Barry
+# will move large files from queue_path to local_storage_path.
 local_storage_path = "var/storage"
 
 # Maximum files to upload at the same time

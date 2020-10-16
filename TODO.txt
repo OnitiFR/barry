@@ -1,7 +1,6 @@
-- upload
-- log
 - move file to storage
 - local storage expiration
+- log
 - alerts / notifications
 - API server
 - list projects

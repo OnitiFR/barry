@@ -70,11 +70,33 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		return nil, errors.New("empty local_storage_path")
 	}
 
-	err = CreateDirIfNeeded(tConfig.LocalStoragePath)
+	if isDir, err := IsDir(tConfig.LocalStoragePath); !isDir {
+		return nil, err
+	}
+	appConfig.LocalStoragePath = filepath.Clean(tConfig.LocalStoragePath)
+
+	// crude check that path1 and path2 are not the same
+	aPath1, err := filepath.Abs(appConfig.QueuePath)
 	if err != nil {
 		return nil, err
 	}
-	appConfig.LocalStoragePath = tConfig.LocalStoragePath
+
+	aPath2, err := filepath.Abs(appConfig.LocalStoragePath)
+	if err != nil {
+		return nil, err
+	}
+
+	if aPath1 == aPath2 {
+		return nil, errors.New("queue_path and local_storage_path can't be the same")
+	}
+
+	sameDevice, err := AreDirsOnSameDevice(appConfig.QueuePath, appConfig.LocalStoragePath)
+	if err != nil {
+		return nil, err
+	}
+	if sameDevice == false {
+		return nil, fmt.Errorf("'%s' and '%s' must be on the same disk/device/partition", appConfig.QueuePath, appConfig.LocalStoragePath)
+	}
 
 	if tConfig.NumUploaders < 1 {
 		return nil, errors.New("at least one uploader is needed (num_uploaders setting)")

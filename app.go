@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 )
 
@@ -42,7 +43,7 @@ func (app *App) Init() error {
 	}
 	app.WaitList = waitList
 
-	app.Swift, err = NewSwift(app.Config.Swift)
+	app.Swift, err = NewSwift(app.Config)
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,8 @@ func (app *App) Init() error {
 	return nil
 }
 
-// LocalStoragePath builds a path based on LocalStoragePath
+// LocalStoragePath builds a path based on LocalStoragePath, and will create
+// the (last) directory if needed
 func (app *App) LocalStoragePath(dir string, filename string) (string, error) {
 	path := app.Config.LocalStoragePath + "/" + dir
 	err := CreateDirIfNeeded(path)
@@ -74,19 +76,33 @@ func (app *App) waitListFilter(dirName string, fileName string) bool {
 	return true
 }
 
+// queueFile is called when a file is ready to be uploaded
+// We're called by the WaitList as a go routine, so we have no way to
+// "inform back" the list in case of a failure. Something must be done about
+// this ;)
+// - the file should return to the queue?
+// - we set its status back using a callback ?
+// - retry from here?
 func (app *App) queueFile(projectName string, file File) {
 	file.Status = FileStatusUploading
 
 	upload := NewUpload(projectName, &file)
 
-	// send to and wait upload worker
+	// send to upload worker, and wait
 	app.Uploader.Channel <- upload
 	err := <-upload.Result
 
-	// what about errors? the file should return to the queue?
-	// - we set its status back? retry from here?
 	if err != nil {
 		fmt.Printf("upload error: %s\n", err)
+		return
+	}
+
+	// move the file to the local storage
+	source := filepath.Clean(app.Config.QueuePath + "/" + file.Path)
+	dest := filepath.Clean(app.Config.LocalStoragePath + "/" + file.Path)
+	err = os.Rename(source, dest)
+	if err != nil {
+		fmt.Printf("move error: %s\n", err)
 		return
 	}
 
