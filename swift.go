@@ -111,7 +111,7 @@ func (s *Swift) connect() error {
 }
 
 // Upload a local file to Swift provider
-func (s *Swift) Upload(file *File, deleteAfter time.Duration) error {
+func (s *Swift) Upload(file *File) error {
 	sourcePath := path.Clean(s.Config.QueuePath + "/" + file.Path)
 	source, err := os.Open(sourcePath)
 	if err != nil {
@@ -119,7 +119,8 @@ func (s *Swift) Upload(file *File, deleteAfter time.Duration) error {
 	}
 	defer source.Close()
 
-	deleteAfterSeconds := int(deleteAfter / time.Second)
+	expireDuration := file.ExpireRemote.Sub(time.Now())
+	deleteAfterSeconds := int(expireDuration / time.Second)
 
 	dest, err := s.Conn.DynamicLargeObjectCreate(&swift.LargeObjectOpts{
 		Container:  s.Config.Swift.Container,

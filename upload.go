@@ -72,7 +72,7 @@ func (up *Uploader) worker(id int) {
 	upload.LastTry = time.Now()
 
 	fmt.Printf("worker %d: uploading %s\n", id, upload.File.Filename)
-	err = up.Swift.Upload(upload.File, 1*time.Hour)
+	err = up.Swift.Upload(upload.File)
 	if err != nil {
 		fmt.Printf("worker %d: error with %s: %s\n", id, upload.File.Filename, err)
 	} else {

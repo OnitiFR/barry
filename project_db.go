@@ -155,6 +155,12 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 	}
 
 	project.Files[file.Filename] = file
+
+	err := db.save()
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("%s/%s added to ProjectDatabase\n", projectName, file.Filename)
 
 	return nil

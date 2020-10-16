@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // App describes an application
@@ -67,6 +68,28 @@ func (app *App) LocalStoragePath(dir string, filename string) (string, error) {
 	return filepath.Clean(path + "/" + filename), nil
 }
 
+// MoveFileToStorage will move a file from the queue to our storage
+func (app *App) MoveFileToStorage(file *File) error {
+	source := filepath.Clean(app.Config.QueuePath + "/" + file.Path)
+	dest, err := app.LocalStoragePath("files", file.Path)
+	if err != nil {
+		return err
+	}
+
+	destDir := filepath.Dir(dest)
+	err = os.MkdirAll(destDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	err = os.Rename(source, dest)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("file '%s' moved to storage", file.Path)
+	return nil
+}
+
 // should we add this file to the WaitList ?
 func (app *App) waitListFilter(dirName string, fileName string) bool {
 	if app.ProjectDB.FindFile(dirName, fileName) != nil {
@@ -84,6 +107,10 @@ func (app *App) waitListFilter(dirName string, fileName string) bool {
 // - we set its status back using a callback ?
 // - retry from here?
 func (app *App) queueFile(projectName string, file File) {
+
+	file.ExpireLocal = time.Now().Add(2 * time.Minute)
+	file.ExpireRemote = time.Now().Add(5 * time.Minute)
+
 	file.Status = FileStatusUploading
 
 	upload := NewUpload(projectName, &file)
@@ -98,9 +125,7 @@ func (app *App) queueFile(projectName string, file File) {
 	}
 
 	// move the file to the local storage
-	source := filepath.Clean(app.Config.QueuePath + "/" + file.Path)
-	dest := filepath.Clean(app.Config.LocalStoragePath + "/" + file.Path)
-	err = os.Rename(source, dest)
+	err = app.MoveFileToStorage(&file)
 	if err != nil {
 		fmt.Printf("move error: %s\n", err)
 		return
