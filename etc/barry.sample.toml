@@ -13,6 +13,26 @@ local_storage_path = "var/storage"
 # Maximum files to upload at the same time
 num_uploaders = 2
 
+# Default file expiration settings, it's possible to change this at project
+# level using the client.
+#
+# - format: keep XX [day(s)|year(s)] every YY [day|file]
+# - if no "every" part is given, it's the default whatever the day/file
+# - longest value wins, of course
+#
+# For "multi-files" backups, prefer to use "day" instead of "file".
+# Note: a "day" stops at midnight, watchout for backups close to midnight.
+[expiration]
+local = [
+    "keep 30 days",
+]
+remote = [
+    "keep 30 days",
+    "keep 90 days every 7 file",
+#    "keep 1 year every 90 day",
+]
+
+
 # Swift API settings, currently tested only with auth V3 style, older
 # versions and environment reading are in the TODO.
 [swift]

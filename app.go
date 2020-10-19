@@ -49,7 +49,7 @@ func (app *App) Init(trace bool) error {
 		return err
 	}
 
-	db, err := NewProjectDatabase(dataBaseFilename, localStoragePath, app.Log)
+	db, err := NewProjectDatabase(dataBaseFilename, localStoragePath, app.Config.Expiration, app.Log)
 	if err != nil {
 		return err
 	}

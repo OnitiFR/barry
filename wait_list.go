@@ -99,7 +99,7 @@ func (wl *WaitList) Scan() error {
 			project, projectExists := wl.projects[dirName]
 
 			if !projectExists {
-				project = NewProject(dirName)
+				project = NewProject(dirName, nil)
 				wl.projects[dirName] = project
 			}
 

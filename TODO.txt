@@ -1,4 +1,4 @@
-- log
+- use expirations for upload
 - alerts / notifications
 --- first production run ? ---
 - API server
@@ -8,4 +8,5 @@
 
 ### TODO
 
+- create project from cli (so expiration params are ready BEFORE first uploads)
 - allow Swift config from env

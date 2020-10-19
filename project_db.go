@@ -15,20 +15,22 @@ const CheckExpireEvery = 15 * time.Minute
 
 // ProjectDatabase is a Project database holder
 type ProjectDatabase struct {
-	filename         string
-	localStoragePath string
-	projects         ProjectMap
-	log              *Log
-	mutex            sync.Mutex
+	filename          string
+	localStoragePath  string
+	projects          ProjectMap
+	defaultExpiration *ExpirationConfig
+	log               *Log
+	mutex             sync.Mutex
 }
 
 // NewProjectDatabase allocates a new ProjectDatabase
-func NewProjectDatabase(filename string, localStoragePath string, log *Log) (*ProjectDatabase, error) {
+func NewProjectDatabase(filename string, localStoragePath string, defaultExpiration *ExpirationConfig, log *Log) (*ProjectDatabase, error) {
 	db := &ProjectDatabase{
-		filename:         filename,
-		localStoragePath: localStoragePath,
-		projects:         make(ProjectMap),
-		log:              log,
+		filename:          filename,
+		localStoragePath:  localStoragePath,
+		projects:          make(ProjectMap),
+		defaultExpiration: defaultExpiration,
+		log:               log,
 	}
 	// if the file exists, load it
 	if _, err := os.Stat(db.filename); err == nil {
@@ -154,7 +156,7 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 	project, projectExists := db.projects[projectName]
 
 	if !projectExists {
-		project = NewProject(projectName)
+		project = NewProject(projectName, db.defaultExpiration)
 		db.projects[projectName] = project
 	}
 

@@ -15,6 +15,7 @@ type AppConfig struct {
 	QueuePath        string
 	LocalStoragePath string
 	NumUploaders     int
+	Expiration       *ExpirationConfig
 	Swift            *SwiftConfig
 	configPath       string
 }
@@ -23,6 +24,7 @@ type tomlAppConfig struct {
 	QueuePath        string `toml:"queue_path"`
 	LocalStoragePath string `toml:"local_storage_path"`
 	NumUploaders     int    `toml:"num_uploaders"`
+	Expiration       *tomlExpiration
 	Swift            *tomlSwiftConfig
 }
 
@@ -39,6 +41,10 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		QueuePath:        "var/queue",
 		LocalStoragePath: "var/storage",
 		NumUploaders:     2,
+		Expiration: &tomlExpiration{
+			Local:  []string{"keep 30 days"},
+			Remote: []string{"keep 30 days", "keep 90 days every 7 file"},
+		},
 		Swift: &tomlSwiftConfig{
 			Domain:    "Default",
 			ChunkSize: 512 * datasize.MB,
@@ -102,6 +108,13 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		return nil, errors.New("at least one uploader is needed (num_uploaders setting)")
 	}
 	appConfig.NumUploaders = tConfig.NumUploaders
+
+	appConfig.Expiration, err = NewExpirationConfigFromToml(tConfig.Expiration)
+	if err != nil {
+		return nil, err
+	}
+
+	// spew.Dump(appConfig.Expiration)
 
 	appConfig.Swift, err = NewSwiftConfigFromToml(tConfig.Swift)
 	if err != nil {
