@@ -18,15 +18,17 @@ type ProjectDatabase struct {
 	filename         string
 	localStoragePath string
 	projects         ProjectMap
+	log              *Log
 	mutex            sync.Mutex
 }
 
 // NewProjectDatabase allocates a new ProjectDatabase
-func NewProjectDatabase(filename string, localStoragePath string) (*ProjectDatabase, error) {
+func NewProjectDatabase(filename string, localStoragePath string, log *Log) (*ProjectDatabase, error) {
 	db := &ProjectDatabase{
 		filename:         filename,
 		localStoragePath: localStoragePath,
 		projects:         make(ProjectMap),
+		log:              log,
 	}
 	// if the file exists, load it
 	if _, err := os.Stat(db.filename); err == nil {
@@ -168,8 +170,7 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 		return err
 	}
 
-	fmt.Printf("%s/%s added to ProjectDatabase\n", projectName, file.Filename)
-
+	db.log.Infof(projectName, "%s/%s added to ProjectDatabase", projectName, file.Filename)
 	return nil
 }
 
@@ -199,10 +200,10 @@ func (db *ProjectDatabase) expireLocalFiles() {
 				// and we're locking the mutex. We'll deal with errors on our own.
 				// TODO: deal with errors ;)
 				go func(filePath string) {
-					fmt.Printf("deleting local storage file '%s'\n", file.Path)
+					db.log.Infof(file.ProjectName(), "deleting local storage file '%s'", file.Path)
 					err := os.Remove(filePath)
 					if err != nil {
-						fmt.Printf("error deleting local storage file: %s\n", err)
+						db.log.Errorf(file.ProjectName(), "error deleting local storage file '%s': %s", file.Path, err)
 					}
 				}(filePath)
 
@@ -215,7 +216,7 @@ func (db *ProjectDatabase) expireLocalFiles() {
 	if dbModified == true {
 		err := db.save()
 		if err != nil {
-			fmt.Printf("error saving database: %s\n", err)
+			db.log.Errorf(MsgGlob, "error saving database: %s", err)
 		}
 	}
 }
@@ -232,7 +233,7 @@ func (db *ProjectDatabase) expireRemoteFiles() {
 			if time.Now().After(file.ExpireRemote) && !file.ExpiredRemote {
 				file.ExpiredRemote = true
 				dbModified = true
-				fmt.Printf("remote file '%s' marked as expired\n", file.Path)
+				db.log.Infof(file.ProjectName(), "remote file '%s' marked as expired", file.Path)
 			}
 		}
 	}
@@ -240,7 +241,7 @@ func (db *ProjectDatabase) expireRemoteFiles() {
 	if dbModified == true {
 		err := db.save()
 		if err != nil {
-			fmt.Printf("error saving database: %s\n", err)
+			db.log.Errorf(MsgGlob, "error saving database: %s", err)
 		}
 	}
 }
@@ -258,7 +259,7 @@ func (db *ProjectDatabase) expireClean() {
 			if file.ExpiredLocal && file.ExpiredRemote {
 				dbModified = true
 				delete(project.Files, fileKey)
-				fmt.Printf("file '%s' removed from databse\n", file.Path)
+				db.log.Infof(file.ProjectName(), "file '%s' removed from databse", file.Path)
 			}
 		}
 	}
@@ -266,7 +267,7 @@ func (db *ProjectDatabase) expireClean() {
 	if dbModified == true {
 		err := db.save()
 		if err != nil {
-			fmt.Printf("error saving database: %s\n", err)
+			db.log.Errorf(MsgGlob, "error saving database: %s", err)
 		}
 	}
 }

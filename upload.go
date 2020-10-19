@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -25,14 +24,16 @@ type Uploader struct {
 	NumWorkers int
 	Channel    chan *Upload
 	Swift      *Swift
+	Log        *Log
 }
 
 // NewUploader initialize a new instance
-func NewUploader(numWorkers int, swift *Swift) *Uploader {
+func NewUploader(numWorkers int, swift *Swift, log *Log) *Uploader {
 	return &Uploader{
 		NumWorkers: numWorkers,
 		Channel:    make(chan *Upload, numWorkers),
 		Swift:      swift,
+		Log:        log,
 	}
 }
 
@@ -60,7 +61,7 @@ func (up *Uploader) worker(id int) {
 	var err error
 	err = nil
 
-	fmt.Printf("worker %d: waiting\n", id)
+	up.Log.Tracef(MsgGlob, "worker %d: waiting", id)
 	upload := <-up.Channel
 
 	// make sure we always fill result chan
@@ -71,11 +72,11 @@ func (up *Uploader) worker(id int) {
 	upload.Tries++
 	upload.LastTry = time.Now()
 
-	fmt.Printf("worker %d: uploading %s\n", id, upload.File.Filename)
+	up.Log.Infof(upload.File.ProjectName(), "worker %d: uploading %s", id, upload.File.Filename)
 	err = up.Swift.Upload(upload.File)
 	if err != nil {
-		fmt.Printf("worker %d: error with %s: %s\n", id, upload.File.Filename, err)
+		up.Log.Errorf(upload.File.ProjectName(), "worker %d: error with %s: %s", id, upload.File.Filename, err)
 	} else {
-		fmt.Printf("worker %d: done %s\n", id, upload.File.Filename)
+		up.Log.Infof(upload.File.ProjectName(), "worker %d: done uploading %s", id, upload.File.Filename)
 	}
 }

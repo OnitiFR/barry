@@ -23,6 +23,7 @@ func (log *Log) Log(message *Message) {
 
 	if !(message.Type == MessageTrace && log.trace == false) {
 		fmt.Printf("%s: %s\n", message.Type, message.Message)
+		// message.Print(true, true)
 	}
 
 	// we don't historize NOOP and TRACE messages

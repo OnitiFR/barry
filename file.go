@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"path/filepath"
+	"time"
+)
 
 // FileStatus list all possible status for a file in WaitList and ProjectDB
 const (
@@ -26,3 +29,8 @@ type File struct {
 
 // FileMap is a map of File
 type FileMap map[string]*File
+
+// ProjectName is a small helper to return the dir/project name of the file
+func (file *File) ProjectName() string {
+	return filepath.Dir(file.Path)
+}

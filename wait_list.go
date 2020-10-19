@@ -21,6 +21,7 @@ type WaitList struct {
 	projects   ProjectMap
 	filterFunc WaitListFilterFunc
 	queueFunc  WaitListQueueFunc
+	log        *Log
 	mutex      sync.Mutex
 }
 
@@ -33,7 +34,7 @@ type WaitListFilterFunc func(dirName string, fileName string) bool
 type WaitListQueueFunc func(projectName string, file File)
 
 // NewWaitList allocates a new WaitList
-func NewWaitList(watchPath string, filterFunc WaitListFilterFunc, queueFunc WaitListQueueFunc) (*WaitList, error) {
+func NewWaitList(watchPath string, filterFunc WaitListFilterFunc, queueFunc WaitListQueueFunc, log *Log) (*WaitList, error) {
 	if isDir, err := IsDir(watchPath); !isDir {
 		return nil, fmt.Errorf("unable to watch directory '%s': %s", watchPath, err)
 	}
@@ -43,6 +44,7 @@ func NewWaitList(watchPath string, filterFunc WaitListFilterFunc, queueFunc Wait
 		projects:   make(ProjectMap),
 		filterFunc: filterFunc,
 		queueFunc:  queueFunc,
+		log:        log,
 	}, nil
 }
 
@@ -111,15 +113,15 @@ func (wl *WaitList) Scan() error {
 					file.ModTime = info.ModTime()
 					file.Size = info.Size()
 					file.AddedAt = time.Now()
-					fmt.Printf("%s/%s changed, moar waiting\n", dirName, fileName)
+					wl.log.Tracef(dirName, "%s/%s changed, continue waiting", dirName, fileName)
 				} else {
 					// are we waiting for long enough?
 					if file.AddedAt.Add(StableDelay).Before(time.Now()) {
 						file.Status = FileStatusQueued
 						go wl.queueFunc(project.Path, *file)
-						fmt.Printf("%s/%s is ready, queued\n", dirName, fileName)
+						wl.log.Tracef(dirName, "%s/%s is ready, queued", dirName, fileName)
 					} else {
-						fmt.Printf("%s/%s still waiting\n", dirName, fileName)
+						wl.log.Tracef(dirName, "%s/%s still waiting", dirName, fileName)
 					}
 				}
 			} else {
@@ -132,7 +134,7 @@ func (wl *WaitList) Scan() error {
 					Status:   FileStatusNew,
 				}
 				project.Files[fileName] = file
-				fmt.Printf("%s/%s added to wait queue\n", dirName, fileName)
+				wl.log.Tracef(dirName, "%s/%s added to wait queue", dirName, fileName)
 			}
 
 			return nil

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -38,7 +37,7 @@ func NewApp(config *AppConfig) (*App, error) {
 func (app *App) Init(trace bool) error {
 	app.LogHistory = NewLogHistory(LogHistorySize)
 	app.Log = NewLog(trace, app.LogHistory)
-	app.Log.Trace(MsgGlob, "log system available")
+	app.Log.Infof(MsgGlob, "starting barry version %s", Version)
 
 	dataBaseFilename, err := app.LocalStoragePath("data", "projects.db")
 	if err != nil {
@@ -50,13 +49,13 @@ func (app *App) Init(trace bool) error {
 		return err
 	}
 
-	db, err := NewProjectDatabase(dataBaseFilename, localStoragePath)
+	db, err := NewProjectDatabase(dataBaseFilename, localStoragePath, app.Log)
 	if err != nil {
 		return err
 	}
 	app.ProjectDB = db
 
-	waitList, err := NewWaitList(app.Config.QueuePath, app.waitListFilter, app.queueFile)
+	waitList, err := NewWaitList(app.Config.QueuePath, app.waitListFilter, app.queueFile, app.Log)
 	if err != nil {
 		return err
 	}
@@ -67,7 +66,7 @@ func (app *App) Init(trace bool) error {
 		return err
 	}
 
-	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift)
+	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift, app.Log)
 
 	// start services
 	app.Uploader.Start()
@@ -105,7 +104,7 @@ func (app *App) MoveFileToStorage(file *File) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("file '%s' moved to storage", file.Path)
+	app.Log.Infof(file.ProjectName(), "file '%s' moved to storage", file.Path)
 	return nil
 }
 
@@ -139,14 +138,14 @@ func (app *App) queueFile(projectName string, file File) {
 	err := <-upload.Result
 
 	if err != nil {
-		fmt.Printf("upload error: %s\n", err)
+		app.Log.Errorf(projectName, "upload error: %s", err)
 		return
 	}
 
 	// move the file to the local storage
 	err = app.MoveFileToStorage(&file)
 	if err != nil {
-		fmt.Printf("move error: %s\n", err)
+		app.Log.Errorf(projectName, "move error: %s", err)
 		return
 	}
 
