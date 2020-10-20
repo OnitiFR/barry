@@ -1,4 +1,4 @@
-- use expirations for upload
+- manage errors in app.queueFile() /!\
 - alerts / notifications
 --- first production run ? ---
 - API server

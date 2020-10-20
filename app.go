@@ -111,27 +111,13 @@ func (app *App) MoveFileToStorage(file *File) error {
 
 // UploadAndStore will upload and store a file
 func (app *App) UploadAndStore(projectName string, file *File) error {
-	project, err := app.ProjectDB.FindOrCreateProject(projectName)
-	if err != nil {
-		return err
-	}
-
-	localExpiration, remoteExpiration, err := app.ProjectDB.GetProjectNextExpiration(project, file.ModTime)
-	if err != nil {
-		return err
-	}
-
-	file.ExpireLocal = time.Now().Add(localExpiration.Keep)
-	file.ExpireLocalOrg = localExpiration.Original
-	file.ExpireRemote = time.Now().Add(remoteExpiration.Keep)
-	file.ExpireRemoteOrg = remoteExpiration.Original
 	file.Status = FileStatusUploading
 
 	upload := NewUpload(projectName, file)
 
 	// send to upload worker, and wait
 	app.Uploader.Channel <- upload
-	err = <-upload.Result
+	err := <-upload.Result
 
 	if err != nil {
 		return fmt.Errorf("upload error: %s", err)
@@ -163,17 +149,43 @@ func (app *App) waitListFilter(dirName string, fileName string) bool {
 	return true
 }
 
-// queueFile is called when a file is ready to be uploaded
-// We're called by the WaitList as a go routine, so we have no way to
-// "inform back" the list in case of a failure. Something must be done about
-// this ;)
+// queueFile is called when a file is ready to be uploaded, we must be non-blocking!
+func (app *App) queueFile(projectName string, file File) {
+
+	project, err := app.ProjectDB.FindOrCreateProject(projectName)
+	if err != nil {
+		app.unqueueFile(projectName, file, err)
+		return
+	}
+
+	localExpiration, remoteExpiration, err := app.ProjectDB.GetProjectNextExpiration(project, file.ModTime)
+	if err != nil {
+		app.unqueueFile(projectName, file, err)
+		return
+	}
+
+	file.ExpireLocal = time.Now().Add(localExpiration.Keep)
+	file.ExpireLocalOrg = localExpiration.Original
+	file.ExpireRemote = time.Now().Add(remoteExpiration.Keep)
+	file.ExpireRemoteOrg = remoteExpiration.Original
+
+	// we must no block the Scan, so we use a goroutine
+	go func() {
+		err = app.UploadAndStore(projectName, &file)
+		if err != nil {
+			app.unqueueFile(projectName, file, err)
+			return
+		}
+	}()
+}
+
+// unqueueFile is used when something went wrong and we need to put
+// the file back in the queue.
+// WIP, some options are:
 // - the file should return to the queue?
 // - we set its status back using a callback ?
 // - retry from here?
-func (app *App) queueFile(projectName string, file File) {
-
-	err := app.UploadAndStore(projectName, &file)
-	if err != nil {
-		app.Log.Errorf(projectName, "error with '%s': %s", file.Path, err)
-	}
+func (app *App) unqueueFile(projectName string, file File, errIn error) {
+	// file.Status = ??
+	app.Log.Errorf(projectName, "error with '%s': %s (CURRENTLY, NOTHING WILL BE DONE ABOUT THAT!)", file.Path, errIn)
 }
