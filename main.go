@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 )
 
 var configPath = flag.String("path", "./etc/", "configuration path")
@@ -36,13 +35,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for {
-		err = app.WaitList.Scan()
-		if err != nil {
-			log.Fatal(err)
-		}
-		time.Sleep(1 * time.Second)
-	}
+	app.Run()
 
 	// app.WaitList.Dump()
 

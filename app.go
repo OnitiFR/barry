@@ -14,6 +14,16 @@ const FileStorageName = "files"
 // LogHistorySize is the maximum number of messages in app log history
 const LogHistorySize = 5000
 
+// RetryDelay is used when an upload/move failed
+const RetryDelay = 15 * time.Minute
+
+// QueueScanDelay is the delay between consecutive queue scans
+const QueueScanDelay = 1 * time.Minute
+
+// QueueStableDelay determine how long a file should stay the same (mtime+size)
+// to be considered stable.
+const QueueStableDelay = 5 * time.Second
+
 // App describes an application
 type App struct {
 	Config     *AppConfig
@@ -74,6 +84,18 @@ func (app *App) Init(trace bool, pretty bool) error {
 	go app.ProjectDB.ScheduleExpireFiles()
 
 	return nil
+}
+
+// Run the app (block, will never return)
+func (app *App) Run() {
+	for {
+		err := app.WaitList.Scan()
+		if err != nil {
+			// TODO: add external error reporting
+			app.Log.Errorf(MsgGlob, "queue scan error: %s", err)
+		}
+		time.Sleep(QueueScanDelay)
+	}
 }
 
 // LocalStoragePath builds a path based on LocalStoragePath, and will create
@@ -154,13 +176,13 @@ func (app *App) queueFile(projectName string, file File) {
 
 	project, err := app.ProjectDB.FindOrCreateProject(projectName)
 	if err != nil {
-		app.unqueueFile(projectName, file, err)
+		go app.unqueueFile(projectName, file, err)
 		return
 	}
 
 	localExpiration, remoteExpiration, err := app.ProjectDB.GetProjectNextExpiration(project, file.ModTime)
 	if err != nil {
-		app.unqueueFile(projectName, file, err)
+		go app.unqueueFile(projectName, file, err)
 		return
 	}
 
@@ -173,7 +195,7 @@ func (app *App) queueFile(projectName string, file File) {
 	go func() {
 		err = app.UploadAndStore(projectName, &file)
 		if err != nil {
-			app.unqueueFile(projectName, file, err)
+			go app.unqueueFile(projectName, file, err)
 			return
 		}
 	}()
@@ -181,11 +203,12 @@ func (app *App) queueFile(projectName string, file File) {
 
 // unqueueFile is used when something went wrong and we need to put
 // the file back in the queue.
-// WIP, some options are:
-// - the file should return to the queue?
-// - we set its status back using a callback ?
-// - retry from here?
 func (app *App) unqueueFile(projectName string, file File, errIn error) {
-	// file.Status = ??
-	app.Log.Errorf(projectName, "error with '%s': %s (CURRENTLY, NOTHING WILL BE DONE ABOUT THAT!)", file.Path, errIn)
+	// TODO: add external error reporting
+	app.Log.Errorf(projectName, "error with '%s': %s, will retry in %s", file.Path, errIn, RetryDelay)
+
+	time.Sleep(RetryDelay)
+	app.Log.Tracef(projectName, "set '%s' for a retry", file.Path)
+	app.WaitList.RemoveFile(projectName, file.Filename)
+
 }

@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-// StableDelay determine how long a file should stay the same (mtime+size)
-// to be considered stable.
-const StableDelay = 5 * time.Second
-
 // WaitList stores all files of the source path we're waiting for.
 // (waiting means the fime must be stable [no change of size of mtime] for
 // a determined period of time)
@@ -65,6 +61,9 @@ func (wl *WaitList) Dump() {
 // Scan the source directory to detect new files and add them to the list
 // TODO: delete files from the list when they're not found anymore during scans (it's a memory issue)
 func (wl *WaitList) Scan() error {
+	wl.log.Trace(MsgGlob, "start a queue scan")
+	defer wl.log.Trace(MsgGlob, "end queue scan")
+
 	wl.mutex.Lock()
 	defer wl.mutex.Unlock()
 
@@ -116,7 +115,7 @@ func (wl *WaitList) Scan() error {
 					wl.log.Tracef(dirName, "%s/%s changed, continue waiting", dirName, fileName)
 				} else {
 					// are we waiting for long enough?
-					if file.AddedAt.Add(StableDelay).Before(time.Now()) {
+					if file.AddedAt.Add(QueueStableDelay).Before(time.Now()) {
 						file.Status = FileStatusQueued
 						wl.queueFunc(project.Path, *file)
 						wl.log.Tracef(dirName, "%s/%s is ready, queued", dirName, fileName)
@@ -140,4 +139,25 @@ func (wl *WaitList) Scan() error {
 			return nil
 		})
 	return err
+}
+
+// RemoveFile from the WaitList (next Scan will discover the file again)
+func (wl *WaitList) RemoveFile(projectName string, fileName string) error {
+	wl.mutex.Lock()
+	defer wl.mutex.Unlock()
+
+	project, projectExists := wl.projects[projectName]
+
+	if !projectExists {
+		return fmt.Errorf("project '%s' not found in the wait list", projectName)
+	}
+
+	_, fileExists := project.Files[fileName]
+	if !fileExists {
+		return fmt.Errorf("file '%s/%s' not found in the wait list", projectName, fileName)
+	}
+
+	delete(project.Files, fileName)
+
+	return nil
 }
