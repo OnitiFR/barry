@@ -6,6 +6,8 @@ import "time"
 type Project struct {
 	Path             string
 	Files            FileMap
+	FileCount        int
+	SizeCount        int64
 	LocalExpiration  Expiration
 	RemoteExpiration Expiration
 }
