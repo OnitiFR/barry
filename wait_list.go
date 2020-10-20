@@ -118,7 +118,13 @@ func (wl *WaitList) Scan() error {
 					// are we waiting for long enough?
 					if file.AddedAt.Add(StableDelay).Before(time.Now()) {
 						file.Status = FileStatusQueued
+
 						go wl.queueFunc(project.Path, *file)
+
+						// relax the loop to let the goroutine start its work,
+						// it helps to keep file ordered in the queue
+						time.Sleep(100 * time.Millisecond)
+
 						wl.log.Tracef(dirName, "%s/%s is ready, queued", dirName, fileName)
 					} else {
 						wl.log.Tracef(dirName, "%s/%s still waiting", dirName, fileName)
