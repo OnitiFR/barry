@@ -45,7 +45,7 @@ func (log *Log) Error(topic, message string) {
 // Errorf sends a formated string MessageError Message
 func (log *Log) Errorf(topic, format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	log.Error(msg, topic)
+	log.Error(topic, msg)
 }
 
 // Warning sends a MessageWarning Message
@@ -56,7 +56,7 @@ func (log *Log) Warning(topic, message string) {
 // Warningf sends a formated string MessageWarning Message
 func (log *Log) Warningf(topic, format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	log.Warning(msg, topic)
+	log.Warning(topic, msg)
 }
 
 // Info sends an MessageInfo Message
