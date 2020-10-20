@@ -20,8 +20,10 @@ num_uploaders = 2
 # - if no "every" part is given, it's the default whatever the day/file
 # - longest value wins, of course
 #
-# For "multi-files" backups, prefer to use "day" instead of "file".
-# Note: a "day" stops at midnight, watchout for backups close to midnight.
+# Notes :
+# - for "multi-files" backups, prefer to use "day" instead of "file"
+# - a "day" stops at midnight, watchout for backups close to midnight.
+# - changing these settings does not impact existing projets!
 [expiration]
 local = [
     "keep 30 days",

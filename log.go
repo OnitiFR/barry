@@ -8,13 +8,15 @@ import (
 type Log struct {
 	history *LogHistory
 	trace   bool
+	pretty  bool
 }
 
 // NewLog creates a new Log
-func NewLog(trace bool, history *LogHistory) *Log {
+func NewLog(trace bool, pretty bool, history *LogHistory) *Log {
 	return &Log{
 		history: history,
 		trace:   trace,
+		pretty:  pretty,
 	}
 }
 
@@ -22,8 +24,11 @@ func NewLog(trace bool, history *LogHistory) *Log {
 func (log *Log) Log(message *Message) {
 
 	if !(message.Type == MessageTrace && log.trace == false) {
-		fmt.Printf("%s: %s\n", message.Type, message.Message)
-		// message.Print(true, true)
+		if log.pretty {
+			message.Print(true, true)
+		} else {
+			fmt.Printf("%s: %s\n", message.Type, message.Message)
+		}
 	}
 
 	// we don't historize NOOP and TRACE messages

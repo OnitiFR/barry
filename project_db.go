@@ -148,8 +148,8 @@ func (db *ProjectDatabase) FindFile(projectName string, fileName string) *File {
 	return file
 }
 
-// AddFile will add a file to the database to a specific project
-func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
+// FindOrCreateProject will return an existing project or create a new one if needed
+func (db *ProjectDatabase) FindOrCreateProject(projectName string) (*Project, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
@@ -158,6 +158,24 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 	if !projectExists {
 		project = NewProject(projectName, db.defaultExpiration)
 		db.projects[projectName] = project
+
+		err := db.save()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return project, nil
+}
+
+// AddFile will add a file to the database to a specific project
+func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	project, projectExists := db.projects[projectName]
+	if !projectExists {
+		return fmt.Errorf("project '%s' does not exists in database, can't add '%s'", projectName, file.Filename)
 	}
 
 	_, fileExists := project.Files[file.Filename]
@@ -174,6 +192,22 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 
 	db.log.Infof(projectName, "%s/%s added to ProjectDatabase", projectName, file.Filename)
 	return nil
+}
+
+// GetProjectNextExpiration …
+func (db *ProjectDatabase) GetProjectNextExpiration(project *Project, modTime time.Time) (ExpirationResult, ExpirationResult, error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	err := db.save()
+	if err != nil {
+		return ExpirationResult{}, ExpirationResult{}, err
+	}
+
+	localExpiration := project.LocalExpiration.GetNext(modTime)
+	remoteExpiration := project.RemoteExpiration.GetNext(modTime)
+
+	return localExpiration, remoteExpiration, nil
 }
 
 // ScheduleExpireFiles will schedule file expiration tasks (call as a goroutine)

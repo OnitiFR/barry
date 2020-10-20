@@ -109,7 +109,7 @@ func (message *Message) Print(showTime bool, showTopic bool) error {
 
 	topic := ""
 	if showTopic {
-		topic = " [" + message.Topic + "] "
+		topic = "[" + message.Topic + "] "
 	}
 
 	fmt.Printf("%s%s%s: %s\n", time, topic, mtype, content)

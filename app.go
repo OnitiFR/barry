@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,9 +35,9 @@ func NewApp(config *AppConfig) (*App, error) {
 }
 
 // Init the application
-func (app *App) Init(trace bool) error {
+func (app *App) Init(trace bool, pretty bool) error {
 	app.LogHistory = NewLogHistory(LogHistorySize)
-	app.Log = NewLog(trace, app.LogHistory)
+	app.Log = NewLog(trace, pretty, app.LogHistory)
 	app.Log.Infof(MsgGlob, "starting barry version %s", Version)
 
 	dataBaseFilename, err := app.LocalStoragePath("data", "projects.db")
@@ -108,10 +109,55 @@ func (app *App) MoveFileToStorage(file *File) error {
 	return nil
 }
 
+// UploadAndStore will upload and store a file
+func (app *App) UploadAndStore(projectName string, file *File) error {
+	project, err := app.ProjectDB.FindOrCreateProject(projectName)
+	if err != nil {
+		return err
+	}
+
+	localExpiration, remoteExpiration, err := app.ProjectDB.GetProjectNextExpiration(project, file.ModTime)
+	if err != nil {
+		return err
+	}
+
+	file.ExpireLocal = time.Now().Add(localExpiration.Keep)
+	file.ExpireLocalOrg = localExpiration.Original
+	file.ExpireRemote = time.Now().Add(remoteExpiration.Keep)
+	file.ExpireRemoteOrg = remoteExpiration.Original
+	file.Status = FileStatusUploading
+
+	upload := NewUpload(projectName, file)
+
+	// send to upload worker, and wait
+	app.Uploader.Channel <- upload
+	err = <-upload.Result
+
+	if err != nil {
+		return fmt.Errorf("upload error: %s", err)
+	}
+
+	// move the file to the local storage
+	err = app.MoveFileToStorage(file)
+	if err != nil {
+		return fmt.Errorf("move error: %s", err)
+	}
+
+	file.Status = FileStatusUploaded
+
+	// add to database
+	err = app.ProjectDB.AddFile(projectName, file)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // should we add this file to the WaitList ?
 func (app *App) waitListFilter(dirName string, fileName string) bool {
 	if app.ProjectDB.FindFile(dirName, fileName) != nil {
-		// this file is already in the database
+		// no, this file is already in the database
 		return false
 	}
 	return true
@@ -126,31 +172,8 @@ func (app *App) waitListFilter(dirName string, fileName string) bool {
 // - retry from here?
 func (app *App) queueFile(projectName string, file File) {
 
-	file.ExpireLocal = time.Now().Add(2 * time.Minute)
-	file.ExpireRemote = time.Now().Add(5 * time.Minute)
-
-	file.Status = FileStatusUploading
-
-	upload := NewUpload(projectName, &file)
-
-	// send to upload worker, and wait
-	app.Uploader.Channel <- upload
-	err := <-upload.Result
-
+	err := app.UploadAndStore(projectName, &file)
 	if err != nil {
-		app.Log.Errorf(projectName, "upload error: %s", err)
-		return
+		app.Log.Errorf(projectName, "error with '%s': %s", file.Path, err)
 	}
-
-	// move the file to the local storage
-	err = app.MoveFileToStorage(&file)
-	if err != nil {
-		app.Log.Errorf(projectName, "move error: %s", err)
-		return
-	}
-
-	file.Status = FileStatusUploaded
-
-	// add to database
-	app.ProjectDB.AddFile(projectName, &file)
 }

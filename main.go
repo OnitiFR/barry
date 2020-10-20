@@ -9,7 +9,8 @@ import (
 )
 
 var configPath = flag.String("path", "./etc/", "configuration path")
-var configTrace = flag.Bool("trace", false, "show trace message (debug)")
+var configTrace = flag.Bool("trace", false, "show trace messages (debug)")
+var configPretty = flag.Bool("pretty", false, "show pretty messages")
 var configVersion = flag.Bool("version", false, "show version")
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = app.Init(*configTrace)
+	err = app.Init(*configTrace, *configPretty)
 	if err != nil {
 		log.Fatal(err)
 	}

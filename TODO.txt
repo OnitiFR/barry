@@ -8,5 +8,7 @@
 
 ### TODO
 
-- create project from cli (so expiration params are ready BEFORE first uploads)
+- create project from cli (so expiration params are ready BEFORE first upload)
+- remove empty project? (so new default settings can be used)
 - allow Swift config from env
+- direct upload to mulch server?
