@@ -22,17 +22,22 @@ const QueueScanDelay = 1 * time.Minute
 
 // QueueStableDelay determine how long a file should stay the same (mtime+size)
 // to be considered stable.
-const QueueStableDelay = 5 * time.Second
+const QueueStableDelay = 2 * time.Minute
+
+// KeepAliveDelayDays is the number of days between each keep-alive/stats report
+const KeepAliveDelayDays = 5
 
 // App describes an application
 type App struct {
-	Config     *AppConfig
-	ProjectDB  *ProjectDatabase
-	WaitList   *WaitList
-	Uploader   *Uploader
-	Swift      *Swift
-	Log        *Log
-	LogHistory *LogHistory
+	Config      *AppConfig
+	ProjectDB   *ProjectDatabase
+	WaitList    *WaitList
+	Uploader    *Uploader
+	Swift       *Swift
+	Log         *Log
+	LogHistory  *LogHistory
+	AlertSender *AlertSender
+	Stats       *Stats
 }
 
 // NewApp create a new application
@@ -79,6 +84,14 @@ func (app *App) Init(trace bool, pretty bool) error {
 
 	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift, app.Log)
 
+	app.AlertSender, err = NewAlertSender(app.Config.configPath, app.Log)
+	if err != nil {
+		return err
+	}
+
+	app.Stats = NewStats()
+	app.RunKeepAliveStats(KeepAliveDelayDays)
+
 	// start services
 	app.Uploader.Start()
 	go app.ProjectDB.ScheduleExpireFiles()
@@ -96,6 +109,20 @@ func (app *App) Run() {
 		}
 		time.Sleep(QueueScanDelay)
 	}
+}
+
+// RunKeepAliveStats will send a keepalive alert with stats every X days
+func (app *App) RunKeepAliveStats(daysInterval int) {
+	go func() {
+		for {
+			time.Sleep(24 * time.Hour * time.Duration(daysInterval))
+			app.AlertSender.Send(&Alert{
+				Type:    AlertTypeGood,
+				Subject: "Hi",
+				Content: app.Stats.Report(fmt.Sprintf("since %d day(s)", daysInterval)),
+			})
+		}
+	}()
 }
 
 // LocalStoragePath builds a path based on LocalStoragePath, and will create
@@ -159,6 +186,8 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 		return err
 	}
 
+	app.Stats.Inc(1, file.Size)
+
 	return nil
 }
 
@@ -204,8 +233,14 @@ func (app *App) queueFile(projectName string, file File) {
 // unqueueFile is used when something went wrong and we need to put
 // the file back in the queue.
 func (app *App) unqueueFile(projectName string, file File, errIn error) {
-	// TODO: add external error reporting
-	app.Log.Errorf(projectName, "error with '%s': %s, will retry in %s", file.Path, errIn, RetryDelay)
+	errorMsg := fmt.Sprintf("error with '%s': %s, will retry in %s", file.Path, errIn, RetryDelay)
+	app.Log.Errorf(projectName, errorMsg)
+
+	app.AlertSender.Send(&Alert{
+		Type:    AlertTypeBad,
+		Subject: "Error",
+		Content: errorMsg,
+	})
 
 	time.Sleep(RetryDelay)
 	app.Log.Tracef(projectName, "set '%s' for a retry", file.Path)

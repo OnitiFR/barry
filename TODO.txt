@@ -1,11 +1,13 @@
-- alerts / notifications
---- first production run ? ---
-- API server
-- list projects
-- list files
-- get file
 
-### TODO
+### needed for a V1
+- shorter settings for dev mode
+- alert "no backup since"
+- API server
+    - list projects
+    - list files
+    - get file
+
+### later
 
 - create project from cli (so expiration params are ready BEFORE first upload)
 - remove empty project? (so new default settings can be used)
