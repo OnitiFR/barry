@@ -1,0 +1,12 @@
+[Unit]
+Description=Barry backup
+After=network-online.target
+
+[Service]
+User={USER}
+ExecStart={BARRY_BINARY_PATH} -path {BARRY_ETC_DIR}
+Type=simple
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

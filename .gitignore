@@ -1,6 +1,7 @@
 etc/barry.toml
 var/*
 etc/alerts/*.sh
+barry
 
 # Binaries for programs and plugins
 *.exe
