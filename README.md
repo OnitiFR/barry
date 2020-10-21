@@ -4,6 +4,8 @@
 This client-server tool will watch a local directory for new backups, and
 upload them to a cold-storage Swift ("OVH-flavored") service.
 
+This is a work-in-progress, see the TODO file.
+
 ### Install
 
 Make sure Go is installed, then install/update Barry: `go get -u github.com/OnitiFR/barry`
@@ -15,7 +17,7 @@ You can now manage the service (ex: `systemctl start barry`).
 
 ### Development
 
-Use the `dev` tag for (extremly) reduced timing : 
+Use the `dev` tag for (extremely) reduced timing : 
 - `go run -tags dev . -trace -pretty`
 - `go build -tags dev`
 - …
