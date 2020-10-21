@@ -22,4 +22,4 @@ const QueueScanDelay = 1 * time.Minute
 const QueueStableDelay = 2 * time.Minute
 
 // KeepAliveDelayDays is the number of days between each keep-alive/stats report
-const KeepAliveDelayDays = 5
+const KeepAliveDelayDays = 1
