@@ -52,6 +52,7 @@ func NewProjectDatabase(filename string, localStoragePath string, defaultExpirat
 }
 
 // you should lock the mutex before calling save() & load()
+// TODO: add a cooldown, massive queuing stress this function a lot
 func (db *ProjectDatabase) save() error {
 	f, err := os.Create(db.filename)
 	if err != nil {
@@ -196,18 +197,19 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 	return nil
 }
 
-// GetProjectNextExpiration …
+// GetProjectNextExpiration return next (= for next file) expiration values
 func (db *ProjectDatabase) GetProjectNextExpiration(project *Project, modTime time.Time) (ExpirationResult, ExpirationResult, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
+	localExpiration := project.LocalExpiration.GetNext(modTime)
+	remoteExpiration := project.RemoteExpiration.GetNext(modTime)
+
+	// save, because GetNext have updated project's FileCount
 	err := db.save()
 	if err != nil {
 		return ExpirationResult{}, ExpirationResult{}, err
 	}
-
-	localExpiration := project.LocalExpiration.GetNext(modTime)
-	remoteExpiration := project.RemoteExpiration.GetNext(modTime)
 
 	return localExpiration, remoteExpiration, nil
 }
