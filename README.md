@@ -13,6 +13,9 @@ Make sure Go is installed, then install/update Barry: `go get -u github.com/Onit
 Copy and modify `install/barry.service` to your `/etc/systemd/system`, 
 then reload systemd with `systemctl daemon-reload`.
 
+You can configure alerts using samples in `etc/alerts` directory. Install `jq` utility
+if you want the use the sample `slack.sh` alert.
+
 You can now manage the service (ex: `systemctl start barry`).
 
 ### Development
