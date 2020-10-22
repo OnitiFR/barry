@@ -19,7 +19,7 @@ const QueueScanDelay = 3 * time.Second
 
 // QueueStableDelay determine how long a file should stay the same (mtime+size)
 // to be considered stable.
-const QueueStableDelay = 10 * time.Second
+const QueueStableDelay = 6 * time.Second
 
 // KeepAliveDelayDays is the number of days between each keep-alive/stats report
 const KeepAliveDelayDays = 0

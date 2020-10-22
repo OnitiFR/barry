@@ -31,7 +31,7 @@ type SwiftConfig struct {
 	Domain     string
 	Region     string
 	Container  string
-	ChunckSize int64
+	ChunckSize uint64
 }
 
 // Swift host connection and configuration
@@ -89,6 +89,7 @@ func NewSwiftConfigFromToml(tConfig *tomlSwiftConfig) (*SwiftConfig, error) {
 	if tConfig.ChunkSize < 1*datasize.MB {
 		return nil, fmt.Errorf("chuck_size is to small (%s), use at least 1MB", tConfig.ChunkSize)
 	}
+	config.ChunckSize = tConfig.ChunkSize.Bytes()
 
 	return config, nil
 }
@@ -125,7 +126,7 @@ func (s *Swift) Upload(file *File) error {
 	dest, err := s.Conn.DynamicLargeObjectCreate(&swift.LargeObjectOpts{
 		Container:  s.Config.Swift.Container,
 		ObjectName: file.Path,
-		ChunkSize:  s.Config.Swift.ChunckSize,
+		ChunkSize:  int64(s.Config.Swift.ChunckSize),
 		Headers: swift.Headers{
 			"X-Delete-After": strconv.Itoa(deleteAfterSeconds),
 		},
