@@ -6,8 +6,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"strconv"
-	"time"
 
 	"github.com/c2h5oh/datasize"
 	"github.com/ncw/swift"
@@ -49,6 +47,11 @@ func NewSwift(config *AppConfig) (*Swift, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = swift.init()
+	if err != nil {
+		return nil, err
+	}
+
 	return swift, nil
 }
 
@@ -111,6 +114,24 @@ func (s *Swift) connect() error {
 	return nil
 }
 
+// init swift LDO container
+func (s *Swift) init() error {
+	segmentsContainer := s.Config.Swift.Container + "_segments"
+	_, _, err := s.Conn.Container(segmentsContainer)
+	if err != nil {
+		if err == swift.ContainerNotFound {
+			err = s.Conn.ContainerCreate(segmentsContainer, nil)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Upload a local file to Swift provider
 func (s *Swift) Upload(file *File) error {
 	sourcePath := path.Clean(s.Config.QueuePath + "/" + file.Path)
@@ -120,16 +141,19 @@ func (s *Swift) Upload(file *File) error {
 	}
 	defer source.Close()
 
-	expireDuration := file.ExpireRemote.Sub(time.Now())
-	deleteAfterSeconds := int(expireDuration / time.Second)
+	// In current Openstack object expiration + ncw/swift, only the
+	// manifest will expire, not the segments. We now schedule this on
+	// our side.
+	// expireDuration := file.ExpireRemote.Sub(time.Now())
+	// deleteAfterSeconds := int(expireDuration / time.Second)
 
 	dest, err := s.Conn.DynamicLargeObjectCreate(&swift.LargeObjectOpts{
 		Container:  s.Config.Swift.Container,
 		ObjectName: file.Path,
 		ChunkSize:  int64(s.Config.Swift.ChunckSize),
-		Headers: swift.Headers{
-			"X-Delete-After": strconv.Itoa(deleteAfterSeconds),
-		},
+		// Headers: swift.Headers{
+		// 	"X-Delete-After": strconv.Itoa(deleteAfterSeconds),
+		// },
 	})
 	if err != nil {
 		return err
@@ -137,6 +161,15 @@ func (s *Swift) Upload(file *File) error {
 	defer dest.Close()
 
 	_, err = io.Copy(dest, source)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Delete a File
+func (s *Swift) Delete(file *File) error {
+	err := s.Conn.DynamicLargeObjectDelete(s.Config.Swift.Container, file.Path)
 	if err != nil {
 		return err
 	}

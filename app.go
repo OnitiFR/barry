@@ -244,7 +244,14 @@ func (app *App) deleteLocal(file *File, filePath string) {
 	app.Log.Tracef(file.ProjectName(), "deleting local storage file '%s'", file.Path)
 	err := os.Remove(filePath)
 	if err != nil {
-		app.Log.Errorf(file.ProjectName(), "error deleting local storage file '%s': %s", file.Path, err)
+		msg := fmt.Sprintf("error deleting local storage file '%s': %s", file.Path, err)
+		app.Log.Errorf(file.ProjectName(), msg)
+		app.AlertSender.Send(&Alert{
+			Type:    AlertTypeBad,
+			Subject: "Error",
+			Content: msg,
+		})
+		return
 	}
 	app.Log.Infof(file.ProjectName(), "local storage file '%s' deleted", file.Path)
 }
@@ -252,5 +259,16 @@ func (app *App) deleteLocal(file *File, filePath string) {
 // deleteRemote is called by ProjectDB when a remote file must be removed
 func (app *App) deleteRemote(file *File) {
 	app.Log.Tracef(file.ProjectName(), "deleting remote storage file '%s'", file.Path)
-	app.Log.Infof(file.ProjectName(), "remote file '%s' expired", file.Path)
+	err := app.Swift.Delete(file)
+	if err != nil {
+		msg := fmt.Sprintf("error deleting remote file '%s': %s", file.Path, err)
+		app.Log.Errorf(file.ProjectName(), msg)
+		app.AlertSender.Send(&Alert{
+			Type:    AlertTypeBad,
+			Subject: "Error",
+			Content: msg,
+		})
+		return
+	}
+	app.Log.Infof(file.ProjectName(), "remote file '%s' deleted", file.Path)
 }
