@@ -23,3 +23,6 @@ const QueueStableDelay = 1*time.Minute + 30*time.Second
 
 // KeepAliveDelayDays is the number of days between each keep-alive/stats report
 const KeepAliveDelayDays = 1
+
+// CheckExpireEvery is the delay between each expire task
+const CheckExpireEvery = 15 * time.Minute

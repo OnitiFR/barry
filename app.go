@@ -45,7 +45,13 @@ func (app *App) Init(trace bool, pretty bool) error {
 		return err
 	}
 
-	db, err := NewProjectDatabase(dataBaseFilename, localStoragePath, app.Config.Expiration, app.Log)
+	db, err := NewProjectDatabase(
+		dataBaseFilename,
+		localStoragePath,
+		app.Config.Expiration,
+		app.deleteLocal,
+		app.deleteRemote,
+		app.Log)
 	if err != nil {
 		return err
 	}
@@ -231,4 +237,20 @@ func (app *App) unqueueFile(projectName string, file File, errIn error) {
 	app.Log.Tracef(projectName, "set '%s' for a retry", file.Path)
 	app.WaitList.RemoveFile(projectName, file.Filename)
 
+}
+
+// deleteLocal is called by ProjectDB when a local file must be removed
+func (app *App) deleteLocal(file *File, filePath string) {
+	app.Log.Tracef(file.ProjectName(), "deleting local storage file '%s'", file.Path)
+	err := os.Remove(filePath)
+	if err != nil {
+		app.Log.Errorf(file.ProjectName(), "error deleting local storage file '%s': %s", file.Path, err)
+	}
+	app.Log.Infof(file.ProjectName(), "local storage file '%s' deleted", file.Path)
+}
+
+// deleteRemote is called by ProjectDB when a remote file must be removed
+func (app *App) deleteRemote(file *File) {
+	app.Log.Tracef(file.ProjectName(), "deleting remote storage file '%s'", file.Path)
+	app.Log.Infof(file.ProjectName(), "remote file '%s' expired", file.Path)
 }

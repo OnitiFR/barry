@@ -75,7 +75,7 @@ func (up *Uploader) worker(id int) {
 	up.Log.Infof(upload.File.ProjectName(), "worker %d: uploading %s", id, upload.File.Filename)
 	err = up.Swift.Upload(upload.File)
 	if err != nil {
-		up.Log.Errorf(upload.File.ProjectName(), "worker %d: error with %s: %s", id, upload.File.Filename, err)
+		up.Log.Errorf(upload.File.ProjectName(), "worker %d: upload error with %s: %s", id, upload.File.Filename, err)
 	} else {
 		up.Log.Infof(upload.File.ProjectName(), "worker %d: done uploading %s", id, upload.File.Filename)
 	}

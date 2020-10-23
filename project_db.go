@@ -10,9 +10,6 @@ import (
 	"time"
 )
 
-// CheckExpireEvery is the delay between each expire task
-const CheckExpireEvery = 15 * time.Minute
-
 // ProjectDatabase is a Project database holder
 type ProjectDatabase struct {
 	filename          string
@@ -21,15 +18,32 @@ type ProjectDatabase struct {
 	defaultExpiration *ExpirationConfig
 	log               *Log
 	mutex             sync.Mutex
+	deleteLocalFunc   ProjectDBDeleteLocalFunc
+	deleteRemoteFunc  ProjectDBDeleteRemoteFunc
 }
 
+// ProjectDBDeleteLocalFunc is called when a local file expires (as a goroutine)
+type ProjectDBDeleteLocalFunc func(file *File, filePath string)
+
+// ProjectDBDeleteRemoteFunc is called when a remote file expirtes (as a goroutine)
+type ProjectDBDeleteRemoteFunc func(file *File)
+
 // NewProjectDatabase allocates a new ProjectDatabase
-func NewProjectDatabase(filename string, localStoragePath string, defaultExpiration *ExpirationConfig, log *Log) (*ProjectDatabase, error) {
+func NewProjectDatabase(
+	filename string,
+	localStoragePath string,
+	defaultExpiration *ExpirationConfig,
+	deleteLocalFunc ProjectDBDeleteLocalFunc,
+	deleteRemoteFunc ProjectDBDeleteRemoteFunc,
+	log *Log,
+) (*ProjectDatabase, error) {
 	db := &ProjectDatabase{
 		filename:          filename,
 		localStoragePath:  localStoragePath,
 		projects:          make(ProjectMap),
 		defaultExpiration: defaultExpiration,
+		deleteLocalFunc:   deleteLocalFunc,
+		deleteRemoteFunc:  deleteRemoteFunc,
 		log:               log,
 	}
 	// if the file exists, load it
@@ -237,15 +251,8 @@ func (db *ProjectDatabase) expireLocalFiles() {
 				filePath := path.Clean(db.localStoragePath + "/" + file.Path)
 
 				// deleting file in a subroutine, because it may take quite some time
-				// and we're locking the mutex. We'll deal with errors on our own.
-				// TODO: deal with errors ;)
-				go func(filePath string) {
-					db.log.Infof(file.ProjectName(), "deleting local storage file '%s'", file.Path)
-					err := os.Remove(filePath)
-					if err != nil {
-						db.log.Errorf(file.ProjectName(), "error deleting local storage file '%s': %s", file.Path, err)
-					}
-				}(filePath)
+				// and we're locking the mutex.
+				go db.deleteLocalFunc(file, filePath)
 
 				file.ExpiredLocal = true
 				dbModified = true
@@ -271,9 +278,10 @@ func (db *ProjectDatabase) expireRemoteFiles() {
 	for _, project := range db.projects {
 		for _, file := range project.Files {
 			if time.Now().After(file.ExpireRemote) && !file.ExpiredRemote {
+				// mutex is lock, use a goroutine
+				go db.deleteRemoteFunc(file)
 				file.ExpiredRemote = true
 				dbModified = true
-				db.log.Infof(file.ProjectName(), "remote file '%s' marked as expired", file.Path)
 			}
 		}
 	}
