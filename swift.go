@@ -141,8 +141,8 @@ func (s *Swift) Upload(file *File) error {
 	}
 	defer source.Close()
 
-	// In current Openstack object expiration + ncw/swift, only the
-	// manifest will expire, not the segments. We now schedule this on
+	// Currently, with Openstack object expiration + ncw/swift, only the
+	// manifest will expire, not the segments. We now schedule deletion on
 	// our side.
 	// expireDuration := file.ExpireRemote.Sub(time.Now())
 	// deleteAfterSeconds := int(expireDuration / time.Second)
