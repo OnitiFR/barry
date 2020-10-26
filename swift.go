@@ -116,8 +116,13 @@ func (s *Swift) connect() error {
 
 // init swift LDO container
 func (s *Swift) init() error {
+	_, _, err := s.Conn.Container(s.Config.Swift.Container)
+	if err != nil {
+		return fmt.Errorf("container '%s' does not exists", s.Config.Swift.Container)
+	}
+
 	segmentsContainer := s.Config.Swift.Container + "_segments"
-	_, _, err := s.Conn.Container(segmentsContainer)
+	_, _, err = s.Conn.Container(segmentsContainer)
 	if err != nil {
 		if err == swift.ContainerNotFound {
 			err = s.Conn.ContainerCreate(segmentsContainer, nil)
