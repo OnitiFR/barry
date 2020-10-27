@@ -373,7 +373,7 @@ func (db *ProjectDatabase) NoBackupAlerts() {
 		if diff > threshold {
 			// backup is missing, did we need to send another alert?
 			if now.Sub(project.LastNoBackupAlert) > project.BackupEvery {
-				db.log.Errorf(project.Path, "missing backup (BackupEvery=%s)", project.BackupEvery)
+				db.log.Errorf(project.Path, "missing backup for project '%s' (BackupEvery=%s)", project.Path, project.BackupEvery)
 				noBackupProjects = append(noBackupProjects, project)
 				project.LastNoBackupAlert = now
 				dbModified = true
