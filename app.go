@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -52,6 +53,7 @@ func (app *App) Init(trace bool, pretty bool) error {
 		app.Config.Expiration,
 		app.deleteLocal,
 		app.deleteRemote,
+		app.sendNoBackupAlert,
 		app.Log)
 	if err != nil {
 		return err
@@ -82,6 +84,7 @@ func (app *App) Init(trace bool, pretty bool) error {
 	// start services
 	app.Uploader.Start()
 	go app.ProjectDB.ScheduleExpireFiles()
+	go app.ProjectDB.ScheduleNoBackupAlerts()
 
 	return nil
 }
@@ -274,4 +277,18 @@ func (app *App) deleteRemote(file *File) {
 		return
 	}
 	app.Log.Infof(file.ProjectName(), "remote file '%s' deleted", file.Path)
+}
+
+func (app *App) sendNoBackupAlert(projects []*Project) {
+	projectStrings := make([]string, 0)
+	for _, project := range projects {
+		projectStrings = append(projectStrings, fmt.Sprintf("%s (%s)", project.Path, project.BackupEvery))
+	}
+
+	msg := fmt.Sprintf("missing backup for project(s) : %s", strings.Join(projectStrings, ", "))
+	app.AlertSender.Send(&Alert{
+		Type:    AlertTypeBad,
+		Subject: "Error",
+		Content: msg,
+	})
 }

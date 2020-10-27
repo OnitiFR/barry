@@ -1,5 +1,4 @@
 ### needed for a V1
-- check re-up of an existing file in the DB
 - alert "no backup since"
 - API server
     - list projects
@@ -7,6 +6,8 @@
     - get file
 
 ### later
+- per-project no-backup alert threshold
+- check re-up of an existing file in the DB
 - add worker status maps ? (idle, uploading) for status command ?
 - error count on files? (maybe to noisy to report each file)
 - create project from cli (so expiration params are ready BEFORE first upload)

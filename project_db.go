@@ -20,6 +20,7 @@ type ProjectDatabase struct {
 	mutex             sync.Mutex
 	deleteLocalFunc   ProjectDBDeleteLocalFunc
 	deleteRemoteFunc  ProjectDBDeleteRemoteFunc
+	noBackupAlertFunc ProjectDBNoBackupAlertFunc
 }
 
 // ProjectDBDeleteLocalFunc is called when a local file expires (as a goroutine)
@@ -28,6 +29,9 @@ type ProjectDBDeleteLocalFunc func(file *File, filePath string)
 // ProjectDBDeleteRemoteFunc is called when a remote file expirtes (as a goroutine)
 type ProjectDBDeleteRemoteFunc func(file *File)
 
+// ProjectDBNoBackupAlertFunc is called when a backup is missing for a project
+type ProjectDBNoBackupAlertFunc func(projects []*Project)
+
 // NewProjectDatabase allocates a new ProjectDatabase
 func NewProjectDatabase(
 	filename string,
@@ -35,6 +39,7 @@ func NewProjectDatabase(
 	defaultExpiration *ExpirationConfig,
 	deleteLocalFunc ProjectDBDeleteLocalFunc,
 	deleteRemoteFunc ProjectDBDeleteRemoteFunc,
+	noBackupAlertFunc ProjectDBNoBackupAlertFunc,
 	log *Log,
 ) (*ProjectDatabase, error) {
 	db := &ProjectDatabase{
@@ -44,6 +49,7 @@ func NewProjectDatabase(
 		defaultExpiration: defaultExpiration,
 		deleteLocalFunc:   deleteLocalFunc,
 		deleteRemoteFunc:  deleteRemoteFunc,
+		noBackupAlertFunc: noBackupAlertFunc,
 		log:               log,
 	}
 	// if the file exists, load it
@@ -54,15 +60,31 @@ func NewProjectDatabase(
 		}
 	}
 
+	err := db.upgrade()
+	if err != nil {
+		return nil, err
+	}
+
 	// save the file to check if it's writable
 	// (no mutex lock, we're still in the single main thread)
-	err := db.save()
+	err = db.save()
 	if err != nil {
 		return nil, err
 	}
 
 	return db, nil
 
+}
+
+// upgrade projects schema version
+func (db *ProjectDatabase) upgrade() error {
+	for _, project := range db.projects {
+		err := project.upgrade()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // you should lock the mutex before calling save() & load()
@@ -73,6 +95,8 @@ func (db *ProjectDatabase) save() error {
 		return err
 	}
 	defer f.Close()
+
+	db.log.Trace(MsgGlob, "saving ProjectDatabase")
 
 	enc := json.NewEncoder(f)
 	err = enc.Encode(&db.projects)
@@ -201,6 +225,7 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 	project.Files[file.Filename] = file
 	project.FileCount++
 	project.SizeCount += file.Size
+	project.LastNoBackupAlert = time.Time{}
 
 	err := db.save()
 	if err != nil {
@@ -318,4 +343,53 @@ func (db *ProjectDatabase) expireClean() {
 			db.log.Errorf(MsgGlob, "error saving database: %s", err)
 		}
 	}
+}
+
+// ScheduleNoBackupAlerts will schedule NoBackupAlerts task
+func (db *ProjectDatabase) ScheduleNoBackupAlerts() {
+	for {
+		db.NoBackupAlerts()
+		time.Sleep(NoBackupAlertSchedule)
+	}
+}
+
+// NoBackupAlerts will alert when no backup is found in time for a project
+func (db *ProjectDatabase) NoBackupAlerts() {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	now := time.Now()
+
+	dbModified := false
+	noBackupProjects := make([]*Project, 0)
+
+	for _, project := range db.projects {
+		modTime := project.ModTime()
+		if modTime.IsZero() {
+			continue
+		}
+		diff := now.Sub(modTime)
+		threshold := project.BackupEvery + (project.BackupEvery / 2)
+		if diff > threshold {
+			// backup is missing, did we need to send another alert?
+			if now.Sub(project.LastNoBackupAlert) > project.BackupEvery {
+				db.log.Errorf(project.Path, "missing backup (BackupEvery=%s)", project.BackupEvery)
+				noBackupProjects = append(noBackupProjects, project)
+				project.LastNoBackupAlert = now
+				dbModified = true
+			}
+		}
+	}
+
+	if len(noBackupProjects) > 0 {
+		db.noBackupAlertFunc(noBackupProjects)
+	}
+
+	if dbModified == true {
+		err := db.save()
+		if err != nil {
+			db.log.Errorf(MsgGlob, "error saving database: %s", err)
+		}
+	}
+
 }
