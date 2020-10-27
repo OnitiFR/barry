@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -218,6 +219,8 @@ func (app *App) queueFile(projectName string, file File) {
 			go app.unqueueFile(projectName, file, err)
 			return
 		}
+		// clear all segments used by the file
+		runtime.GC()
 	}()
 }
 

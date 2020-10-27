@@ -11,6 +11,7 @@ queue_path = "var/queue"
 local_storage_path = "var/storage"
 
 # Maximum files to upload at the same time
+# warning: required memory = num_uploaders * chunk_size (at least)
 num_uploaders = 2
 
 # Default file expiration settings, it's possible to change this at project

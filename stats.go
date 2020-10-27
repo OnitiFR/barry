@@ -41,7 +41,7 @@ func (s *Stats) Report(intro string) string {
 	// since := now.Sub(s.LastReportTime)
 
 	size := datasize.ByteSize(s.SizeCount)
-	str := fmt.Sprintf("%s: %d file(s) sent for a total of %s", intro, s.FileCount, size)
+	str := fmt.Sprintf("%s: %d file(s) sent for a total of %s", intro, s.FileCount, size.HR())
 
 	s.LastReportTime = now
 	s.FileCount = 0
