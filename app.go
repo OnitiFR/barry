@@ -95,7 +95,6 @@ func (app *App) Init(trace bool, pretty bool) error {
 		return err
 	}
 	app.APIKeysDB = keysDB
-	return nil
 
 	// start services
 	app.Uploader.Start()
