@@ -1,9 +1,8 @@
 ### needed for a V1
-- alert "no backup since"
 - API server
+    - get file
     - list projects
     - list files
-    - get file
 
 ### later
 - per-project no-backup alert threshold
