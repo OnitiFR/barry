@@ -21,7 +21,7 @@ You can now manage the service (ex: `systemctl start barry`).
 
 ### Development
 
-Use the `dev` tag for (extremely) reduced timing : 
-- `go run -tags dev . -trace -pretty`
-- `go build -tags dev`
+Use the `dev` tag for (extremely) reduced timings, examples :
+- `go run -tags dev ./cmd/barryd/ -trace -pretty`
+- `go build -tags dev ./cmd/barryd/`
 - …
