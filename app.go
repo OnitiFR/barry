@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,6 +21,8 @@ type App struct {
 	LogHistory  *LogHistory
 	AlertSender *AlertSender
 	Stats       *Stats
+	APIKeysDB   *APIKeyDatabase
+	Rand        *rand.Rand
 }
 
 // NewApp create a new application
@@ -27,6 +30,7 @@ func NewApp(config *AppConfig) (*App, error) {
 
 	app := &App{
 		Config: config,
+		Rand:   rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	return app, nil
 }
@@ -80,6 +84,18 @@ func (app *App) Init(trace bool, pretty bool) error {
 
 	app.Stats = NewStats()
 	app.RunKeepAliveStats(KeepAliveDelayDays)
+
+	keyDataBaseFilename, err := app.LocalStoragePath("data", "api-keys.db")
+	if err != nil {
+		return err
+	}
+
+	keysDB, err := NewAPIKeyDatabase(keyDataBaseFilename, app.Log, app.Rand)
+	if err != nil {
+		return err
+	}
+	app.APIKeysDB = keysDB
+	return nil
 
 	// start services
 	app.Uploader.Start()
