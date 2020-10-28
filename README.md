@@ -8,7 +8,8 @@ This is a work-in-progress, see the TODO file.
 
 ### Install
 
-Make sure Go is installed, then install/update Barry: `go get -u github.com/OnitiFR/barry`
+Make sure Go is installed, then install/update Barry:
+`go get -u github.com/OnitiFR/cmd/...`
 
 Copy and modify `install/barry.service` to your `/etc/systemd/system`, 
 then reload systemd with `systemctl daemon-reload`.
