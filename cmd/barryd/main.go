@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/OnitiFR/barry/cmd/barryd/server"
 )
 
 var configPath = flag.String("path", "./etc/", "configuration path")
@@ -16,16 +18,16 @@ func main() {
 	flag.Parse()
 
 	if *configVersion == true {
-		fmt.Println(Version)
+		fmt.Println(server.Version)
 		os.Exit(0)
 	}
 
-	config, err := NewAppConfigFromTomlFile(*configPath)
+	config, err := server.NewAppConfigFromTomlFile(*configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	app, err := NewApp(config)
+	app, err := server.NewApp(config)
 	if err != nil {
 		log.Fatal(err)
 	}

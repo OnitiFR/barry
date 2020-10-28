@@ -1,4 +1,4 @@
-package main
+package server
 
 // Provide sort-by-mtime of a File map, using sort.Interface
 

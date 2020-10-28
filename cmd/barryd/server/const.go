@@ -1,6 +1,6 @@
-// +build dev
+// +build !dev
 
-package main
+package server
 
 import "time"
 
@@ -12,20 +12,20 @@ const FileStorageName = "files"
 const LogHistorySize = 5000
 
 // RetryDelay is used when an upload/move failed
-const RetryDelay = 1 * time.Minute
+const RetryDelay = 15 * time.Minute
 
 // QueueScanDelay is the delay between consecutive queue scans
-const QueueScanDelay = 3 * time.Second
+const QueueScanDelay = 1 * time.Minute
 
 // QueueStableDelay determine how long a file should stay the same (mtime+size)
 // to be considered stable.
-const QueueStableDelay = 6 * time.Second
+const QueueStableDelay = 1*time.Minute + 30*time.Second
 
 // KeepAliveDelayDays is the number of days between each keep-alive/stats report
-const KeepAliveDelayDays = 0
+const KeepAliveDelayDays = 1
 
 // CheckExpireEvery is the delay between each expire task
-const CheckExpireEvery = 1 * time.Minute
+const CheckExpireEvery = 15 * time.Minute
 
 // ProjectDefaultBackupEvery is the approximate delay between each backup
 // of a projet (used by no-bockup alerts)
