@@ -1,10 +1,10 @@
-etc/barry.toml
-var/*
-etc/alerts/*.sh
+/etc/barry.toml
+/var/*
+/etc/alerts/*.sh
 
 # Binaries for programs and plugins
-barryd
-barry
+/barryd
+/barry
 
 *.exe
 *.exe~

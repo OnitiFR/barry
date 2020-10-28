@@ -14,6 +14,11 @@ local_storage_path = "var/storage"
 # warning: required memory = num_uploaders * chunk_size (at least)
 num_uploaders = 2
 
+## API server configuration
+[api]
+# Listen address of Barry API server (no IP = all interfaces)
+listen = ":8787"
+
 # Default file expiration settings, it's possible to change this at project
 # level using the client.
 #

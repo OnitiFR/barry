@@ -37,6 +37,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	AddRoutes(app)
 	app.Run()
 
 	// app.WaitList.Dump()

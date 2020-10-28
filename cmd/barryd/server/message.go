@@ -38,7 +38,7 @@ const (
 	MessagePrintNoTopic = false
 )
 
-// Message describe a message between mulch client and mulchd server
+// Message describe a message between client and server
 type Message struct {
 	Time    time.Time `json:"time"`
 	Type    string    `json:"type"`

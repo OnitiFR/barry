@@ -2,7 +2,9 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -23,14 +25,19 @@ type App struct {
 	Stats       *Stats
 	APIKeysDB   *APIKeyDatabase
 	Rand        *rand.Rand
+	MuxAPI      *http.ServeMux
+
+	routesAPI map[string][]*Route
 }
 
 // NewApp create a new application
 func NewApp(config *AppConfig) (*App, error) {
 
 	app := &App{
-		Config: config,
-		Rand:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		Config:    config,
+		Rand:      rand.New(rand.NewSource(time.Now().UnixNano())),
+		routesAPI: make(map[string][]*Route),
+		MuxAPI:    http.NewServeMux(),
 	}
 	return app, nil
 }
@@ -100,12 +107,13 @@ func (app *App) Init(trace bool, pretty bool) error {
 	app.Uploader.Start()
 	go app.ProjectDB.ScheduleExpireFiles()
 	go app.ProjectDB.ScheduleNoBackupAlerts()
+	go app.ScheduleScan()
 
 	return nil
 }
 
-// Run the app (block, will never return)
-func (app *App) Run() {
+// ScheduleScan of the WaitList (block, will never return)
+func (app *App) ScheduleScan() {
 	for {
 		err := app.WaitList.Scan()
 		if err != nil {
@@ -116,6 +124,23 @@ func (app *App) Run() {
 	}
 }
 
+// Run will start the app servers (foreground)
+func (app *App) Run() {
+	app.registerRouteHandlers(app.MuxAPI, app.routesAPI)
+
+	errChan := make(chan error)
+
+	go func() {
+		// HTTP API Server
+		app.Log.Infof(MsgGlob, "API server listening on %s (HTTP)", app.Config.API.Listen)
+		err := http.ListenAndServe(app.Config.API.Listen, app.MuxAPI)
+		errChan <- fmt.Errorf("ListenAndServe API server: %s", err)
+	}()
+
+	err := <-errChan
+	log.Fatalf("error: %s", err)
+}
+
 // RunKeepAliveStats will send a keepalive alert with stats every X days
 func (app *App) RunKeepAliveStats(daysInterval int) {
 	go func() {
@@ -124,12 +149,14 @@ func (app *App) RunKeepAliveStats(daysInterval int) {
 				time.Sleep(24 * time.Hour * time.Duration(daysInterval))
 			} else {
 				// we're in dev mode
-				time.Sleep(1 * time.Minute)
+				time.Sleep(5 * time.Minute)
 			}
+			msg := app.Stats.Report(fmt.Sprintf("since %d day(s)", daysInterval))
+			app.Log.Info(MsgGlob, app.Stats.Report(fmt.Sprintf("since %d day(s)", daysInterval)))
 			app.AlertSender.Send(&Alert{
 				Type:    AlertTypeGood,
 				Subject: "Hi",
-				Content: app.Stats.Report(fmt.Sprintf("since %d day(s)", daysInterval)),
+				Content: msg,
 			})
 		}
 	}()

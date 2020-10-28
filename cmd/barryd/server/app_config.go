@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/c2h5oh/datasize"
@@ -17,7 +19,13 @@ type AppConfig struct {
 	NumUploaders     int
 	Expiration       *ExpirationConfig
 	Swift            *SwiftConfig
+	API              *APIConfig
 	configPath       string
+}
+
+// APIConfig describes API server configuration
+type APIConfig struct {
+	Listen string
 }
 
 type tomlAppConfig struct {
@@ -26,6 +34,11 @@ type tomlAppConfig struct {
 	NumUploaders     int    `toml:"num_uploaders"`
 	Expiration       *tomlExpiration
 	Swift            *tomlSwiftConfig
+	API              *tomlAPIConfig
+}
+
+type tomlAPIConfig struct {
+	Listen string
 }
 
 // NewAppConfigFromTomlFile return a AppConfig using a TOML file in configPath
@@ -48,6 +61,9 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		Swift: &tomlSwiftConfig{
 			Domain:    "Default",
 			ChunkSize: 512 * datasize.MB,
+		},
+		API: &tomlAPIConfig{
+			Listen: ":8787",
 		},
 	}
 
@@ -113,6 +129,21 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// API server configuration
+	appConfig.API = &APIConfig{}
+	partsL := strings.Split(tConfig.API.Listen, ":")
+
+	if len(partsL) != 2 {
+		return nil, fmt.Errorf("listen: '%s': wrong format (ex: ':8787')", tConfig.API.Listen)
+	}
+	_, err = strconv.Atoi(partsL[1])
+
+	if err != nil {
+		return nil, fmt.Errorf("listen: '%s': wrong port number", tConfig.API.Listen)
+	}
+
+	appConfig.API.Listen = tConfig.API.Listen
 
 	// spew.Dump(appConfig.Expiration)
 
