@@ -15,10 +15,16 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "barry",
 	Short: "Barry CLI client",
-	Long:  `Barry will send your backups into the clouds`,
+	Long: `Barry will send your backups into the clouds
+
+Sample usage:
+- barry project list
+- barry file list <project>
+- barry file download <project>/<file>
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("%s\n\n", cmd.Short)
-		fmt.Printf("%s\n\n", cmd.Long)
+		fmt.Printf("%s\n", cmd.Short)
+		fmt.Printf("%s\n", cmd.Long)
 		fmt.Printf("Use --help to list commands and options.\n\n")
 		fmt.Printf("configuration file '%s'\n",
 			client.GlobalConfig.ConfigFile,
