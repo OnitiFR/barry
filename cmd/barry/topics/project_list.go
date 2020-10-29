@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 
 	"github.com/OnitiFR/barry/cmd/barry/client"
@@ -17,6 +18,7 @@ import (
 )
 
 var projectListFlagBasic bool
+var projectListFlagSize bool
 
 // projectListCmd represents the "project list" command
 var projectListCmd = &cobra.Command{
@@ -26,6 +28,7 @@ var projectListCmd = &cobra.Command{
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		projectListFlagBasic, _ = cmd.Flags().GetBool("basic")
+		projectListFlagSize, _ = cmd.Flags().GetBool("size")
 		if projectListFlagBasic == true {
 			client.GetExitMessage().Disable()
 		}
@@ -42,6 +45,13 @@ func projectListCB(reader io.Reader, headers http.Header) {
 	err := dec.Decode(&data)
 	if err != nil {
 		log.Fatal(err.Error())
+	}
+
+	// default (controller) sort is by name
+	if projectListFlagSize {
+		sort.Slice(data, func(i, j int) bool {
+			return data[i].SizeCountCurrent < data[j].SizeCountCurrent
+		})
 	}
 
 	if projectListFlagBasic {
@@ -74,4 +84,5 @@ func projectListCB(reader io.Reader, headers http.Header) {
 func init() {
 	projectCmd.AddCommand(projectListCmd)
 	projectListCmd.Flags().BoolP("basic", "b", false, "show basic list, without any formating")
+	projectListCmd.Flags().BoolP("size", "s", false, "sort by size (ascending)")
 }
