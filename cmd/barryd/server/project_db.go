@@ -145,6 +145,20 @@ func (db *ProjectDatabase) GetNames() []string {
 	return keys
 }
 
+// GetByName returns a project, using its name
+// Warning: do not mutate returned project, it's not thread safe
+func (db *ProjectDatabase) GetByName(name string) (*Project, error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	entry, exists := db.projects[name]
+	if !exists {
+		return nil, fmt.Errorf("project %s not found in database", name)
+	}
+	return entry, nil
+
+}
+
 // GetFilenames returns all filenames of a project, sorted by mtime (newer last)
 func (db *ProjectDatabase) GetFilenames(projectName string) ([]string, error) {
 	db.mutex.Lock()
