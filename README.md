@@ -11,17 +11,17 @@ This is a work-in-progress, see the TODO file.
 Make sure Go is installed, then install/update Barry:
 `go get -u github.com/OnitiFR/cmd/...`
 
-Copy and modify `install/barry.service` to your `/etc/systemd/system`, 
+Copy and modify `install/barryd.service` to your `/etc/systemd/system`, 
 then reload systemd with `systemctl daemon-reload`.
 
 You can configure alerts using samples in `etc/alerts` directory. Install `jq` utility
 if you want the use the sample `slack.sh` alert.
 
-You can now manage the service (ex: `systemctl start barry`).
+You can now manage the service (ex: `systemctl start barryd`).
 
 ### Development
 
-Use the `dev` tag for (extremely) reduced timings, examples :
+For the server, use the `dev` tag for (extremely) reduced timings, examples :
 - `go run -tags dev ./cmd/barryd/ -trace -pretty`
 - `go build -tags dev ./cmd/barryd/`
 - …
