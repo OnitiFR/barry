@@ -124,14 +124,7 @@ func (s *Swift) init() error {
 	segmentsContainer := s.Config.Swift.Container + "_segments"
 	_, _, err = s.Conn.Container(segmentsContainer)
 	if err != nil {
-		if err == swift.ContainerNotFound {
-			err = s.Conn.ContainerCreate(segmentsContainer, nil)
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
+		return fmt.Errorf("you must create container '%s' manually, a different pricing may be used if created via the API with default policy", segmentsContainer)
 	}
 
 	return nil
