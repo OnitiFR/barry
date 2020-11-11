@@ -27,14 +27,17 @@ func ListProjectsController(req *server.Request) {
 		}
 
 		var totalSize int64
+		var totalCost float64
 		for _, file := range project.Files {
 			totalSize += file.Size
+			totalCost += file.Cost
 		}
 
 		retData = append(retData, common.APIProjectListEntry{
 			Path:             project.Path,
 			FileCountCurrent: len(project.Files),
 			SizeCountCurrent: totalSize,
+			CostCurrent:      totalCost,
 		})
 	}
 

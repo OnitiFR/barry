@@ -21,7 +21,10 @@ You can now manage the service (ex: `systemctl start barryd`).
 
 ### Development
 
-For the server, use the `dev` tag for (extremely) reduced timings, examples :
+For the server, use the `dev` tag for (extremely) reduced timings, examples:
 - `go run -tags dev ./cmd/barryd/ -trace -pretty`
 - `go build -tags dev ./cmd/barryd/`
 - …
+
+For the client, use something like:
+- `go install ./cmd/barry && barry -c ~/.barry.dev.toml`

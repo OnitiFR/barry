@@ -70,10 +70,11 @@ func projectListCB(reader io.Reader, headers http.Header) {
 				line.Path,
 				strconv.Itoa(line.FileCountCurrent),
 				datasize.ByteSize(line.SizeCountCurrent).HR(),
+				fmt.Sprintf("%.2f", line.CostCurrent),
 			})
 		}
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Path", "Files", "Size"})
+		table.SetHeader([]string{"Path", "Files", "Size", "Cost"})
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 		table.SetCenterSeparator("|")
 		table.AppendBulk(strData)

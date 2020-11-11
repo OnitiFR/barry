@@ -17,7 +17,6 @@ type tomlSwiftConfig struct {
 	AuthURL   string            `toml:"auth_url"`
 	Domain    string            `toml:"domain"`
 	Region    string            `toml:"region"`
-	Container string            `toml:"container"`
 	ChunkSize datasize.ByteSize `toml:"chunk_size"`
 }
 
@@ -28,7 +27,6 @@ type SwiftConfig struct {
 	AuthURL    string
 	Domain     string
 	Region     string
-	Container  string
 	ChunckSize uint64
 }
 
@@ -44,10 +42,6 @@ func NewSwift(config *AppConfig) (*Swift, error) {
 		Config: config,
 	}
 	err := swift.connect()
-	if err != nil {
-		return nil, err
-	}
-	err = swift.init()
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +78,6 @@ func NewSwiftConfigFromToml(tConfig *tomlSwiftConfig) (*SwiftConfig, error) {
 	}
 	config.Region = tConfig.Region
 
-	if tConfig.Container == "" {
-		return nil, errors.New("swift container setting cannot be empty")
-	}
-	config.Container = tConfig.Container
-
 	if tConfig.ChunkSize < 1*datasize.MB {
 		return nil, fmt.Errorf("chuck_size is to small (%s), use at least 1MB", tConfig.ChunkSize)
 	}
@@ -114,14 +103,14 @@ func (s *Swift) connect() error {
 	return nil
 }
 
-// init swift LDO container
-func (s *Swift) init() error {
-	_, _, err := s.Conn.Container(s.Config.Swift.Container)
+// CheckContainer will returnb nil if container and container_segments exists
+func (s *Swift) CheckContainer(name string) error {
+	_, _, err := s.Conn.Container(name)
 	if err != nil {
-		return fmt.Errorf("container '%s' does not exists", s.Config.Swift.Container)
+		return fmt.Errorf("container '%s' does not exists", name)
 	}
 
-	segmentsContainer := s.Config.Swift.Container + "_segments"
+	segmentsContainer := name + "_segments"
 	_, _, err = s.Conn.Container(segmentsContainer)
 	if err != nil {
 		return fmt.Errorf("you must create container '%s' manually, a different pricing may be used if created via the API with default policy", segmentsContainer)
@@ -146,7 +135,7 @@ func (s *Swift) Upload(file *File) error {
 	// deleteAfterSeconds := int(expireDuration / time.Second)
 
 	dest, err := s.Conn.DynamicLargeObjectCreate(&swift.LargeObjectOpts{
-		Container:  s.Config.Swift.Container,
+		Container:  file.Container,
 		ObjectName: file.Path,
 		ChunkSize:  int64(s.Config.Swift.ChunckSize),
 		// Headers: swift.Headers{
@@ -167,7 +156,7 @@ func (s *Swift) Upload(file *File) error {
 
 // Delete a File
 func (s *Swift) Delete(file *File) error {
-	err := s.Conn.DynamicLargeObjectDelete(s.Config.Swift.Container, file.Path)
+	err := s.Conn.DynamicLargeObjectDelete(file.Container, file.Path)
 	if err != nil {
 		return err
 	}

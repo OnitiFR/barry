@@ -20,6 +20,7 @@ type AppConfig struct {
 	Expiration       *ExpirationConfig
 	Swift            *SwiftConfig
 	API              *APIConfig
+	Containers       []*Container
 	configPath       string
 }
 
@@ -35,6 +36,7 @@ type tomlAppConfig struct {
 	Expiration       *tomlExpiration
 	Swift            *tomlSwiftConfig
 	API              *tomlAPIConfig
+	Containers       []*tomlContainer `toml:"container"`
 }
 
 type tomlAPIConfig struct {
@@ -148,6 +150,11 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 	// spew.Dump(appConfig.Expiration)
 
 	appConfig.Swift, err = NewSwiftConfigFromToml(tConfig.Swift)
+	if err != nil {
+		return nil, err
+	}
+
+	appConfig.Containers, err = NewContainersConfigFromToml(tConfig.Containers)
 	if err != nil {
 		return nil, err
 	}

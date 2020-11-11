@@ -239,6 +239,7 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 	project.Files[file.Filename] = file
 	project.FileCount++
 	project.SizeCount += file.Size
+	project.CostCount += file.Cost
 
 	err := db.save()
 	if err != nil {

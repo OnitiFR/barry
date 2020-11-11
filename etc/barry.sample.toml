@@ -51,3 +51,15 @@ domain = "Default" # specific to V3 auth
 region = "***"
 container = "***"
 chunk_size = "512M" # large objects are split
+
+
+# Storage containers. (Barry will check if related _segments container exists, too)
+# Each container can have a cost expression, so barry can decide where to
+# put a file to get the lowest cost. Default cost is 0.
+[[container]]
+name = "backup_hot"
+cost = "0.01 * size_gb * duration_months"
+
+[[container]]
+name = "backup_cold"
+cost = "(0.01 * size_gb) + (0.002 * size_gb * duration_months)"

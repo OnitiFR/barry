@@ -8,6 +8,7 @@ type Project struct {
 	Files             FileMap
 	FileCount         int
 	SizeCount         int64
+	CostCount         float64
 	LocalExpiration   Expiration
 	RemoteExpiration  Expiration
 	BackupEvery       time.Duration

@@ -81,6 +81,15 @@ func (app *App) Init(trace bool, pretty bool) error {
 	if err != nil {
 		return err
 	}
+	app.Log.Trace(MsgGlob, "Swift connected")
+
+	for _, container := range app.Config.Containers {
+		err = app.Swift.CheckContainer(container.Name)
+		if err != nil {
+			return err
+		}
+		app.Log.Tracef(MsgGlob, "container '%s' is OK", container.Name)
+	}
 
 	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift, app.Log)
 
@@ -197,7 +206,25 @@ func (app *App) MoveFileToStorage(file *File) error {
 
 // UploadAndStore will upload and store a file
 func (app *App) UploadAndStore(projectName string, file *File) error {
+	// let's found the cheapest container for this file
+	var minimumCost float64
+	var bestContainer string
+	for _, container := range app.Config.Containers {
+		cost, err := container.Cost(file.Size, file.RemoteKeep)
+		if err != nil {
+			return fmt.Errorf("container cost evaluation error: %s", err)
+		}
+		app.Log.Tracef(projectName, "cost for container '%s': %f", container.Name, cost)
+		if cost < minimumCost || bestContainer == "" {
+			minimumCost = cost
+			bestContainer = container.Name
+		}
+	}
+	app.Log.Tracef(projectName, "using container '%s' for file '%s", bestContainer, file.Filename)
+
 	file.Status = FileStatusUploading
+	file.Cost = minimumCost
+	file.Container = bestContainer
 
 	upload := NewUpload(projectName, file)
 
@@ -256,6 +283,7 @@ func (app *App) queueFile(projectName string, file File) {
 	file.ExpireLocalOrg = localExpiration.Original
 	file.ExpireRemote = time.Now().Add(remoteExpiration.Keep)
 	file.ExpireRemoteOrg = remoteExpiration.Original
+	file.RemoteKeep = remoteExpiration.Keep
 
 	// we must no block the Scan, so we use a goroutine
 	go func() {

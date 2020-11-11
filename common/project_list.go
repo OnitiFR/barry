@@ -8,4 +8,5 @@ type APIProjectListEntry struct {
 	Path             string
 	FileCountCurrent int
 	SizeCountCurrent int64
+	CostCurrent      float64
 }

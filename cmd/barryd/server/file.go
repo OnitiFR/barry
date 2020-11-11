@@ -21,12 +21,15 @@ type File struct {
 	Size            int64
 	AddedAt         time.Time
 	Status          string
-	ExpireLocal     time.Time
-	ExpireRemote    time.Time
-	ExpireLocalOrg  string
-	ExpireRemoteOrg string
+	ExpireLocal     time.Time // expiration date
+	ExpireRemote    time.Time // (same)
+	ExpireLocalOrg  string    // original expire string
+	ExpireRemoteOrg string    // (same)
+	RemoteKeep      time.Duration
 	ExpiredLocal    bool
 	ExpiredRemote   bool
+	Container       string
+	Cost            float64
 }
 
 // FileMap is a map of File
