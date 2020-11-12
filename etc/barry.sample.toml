@@ -53,10 +53,10 @@ container = "***"
 chunk_size = "512M" # large objects are split
 
 
-# Storage containers. (Barry will check if related _segments container exists, too)
+# Storage containers. (Barry will check if related _segments containers exists, too)
 # Each container can have a cost expression, so barry can decide where to
 # put a file to get the lowest cost. Default cost is 0.
-# Available variables:
+# Available variables for cost expression:
 # size (in bytes), size_KB, size_MB, size_GB, size_TB
 # duration_secs, duration_secs, duration_hours, duration_days, duration_months, duration_years (storage duration)
 [[container]]
