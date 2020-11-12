@@ -56,10 +56,13 @@ chunk_size = "512M" # large objects are split
 # Storage containers. (Barry will check if related _segments container exists, too)
 # Each container can have a cost expression, so barry can decide where to
 # put a file to get the lowest cost. Default cost is 0.
+# Available variables:
+# size (in bytes), size_KB, size_MB, size_GB, size_TB
+# duration_secs, duration_secs, duration_hours, duration_days, duration_months, duration_years (storage duration)
 [[container]]
 name = "backup_hot"
-cost = "0.01 * size_gb * duration_months"
+cost = "0.01 * size_GB * duration_months"
 
 [[container]]
 name = "backup_cold"
-cost = "(0.01 * size_gb) + (0.002 * size_gb * duration_months)"
+cost = "(0.01 * size_GB) + (0.002 * size_GB * duration_months)"

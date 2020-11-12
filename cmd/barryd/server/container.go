@@ -60,14 +60,12 @@ func NewContainersConfigFromToml(tContainers []*tomlContainer) ([]*Container, er
 func (c *Container) Cost(size int64, duration time.Duration) (float64, error) {
 	params := make(map[string]interface{})
 
-	// size, size_kb, size_mb, size_gb, size_tb
 	params["size"] = size
-	params["size_kb"] = float64(size) / 1024
-	params["size_mb"] = float64(size) / 1024 / 1024
-	params["size_gb"] = float64(size) / 1024 / 1024 / 1024
-	params["size_tb"] = float64(size) / 1024 / 1024 / 1024 / 1024
+	params["size_KB"] = float64(size) / 1024
+	params["size_MB"] = float64(size) / 1024 / 1024
+	params["size_GB"] = float64(size) / 1024 / 1024 / 1024
+	params["size_TB"] = float64(size) / 1024 / 1024 / 1024 / 1024
 
-	// duration_secs, duration_hours, duration_days, duration_months, duration_years
 	params["duration_secs"] = duration.Seconds()
 	params["duration_hours"] = duration.Hours()
 	params["duration_days"] = duration.Hours() / 24
