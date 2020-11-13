@@ -1,6 +1,6 @@
 package common
 
-// APIProjectListEntries is a list of projet entries
+// APIProjectListEntries is a list of project entries
 type APIProjectListEntries []APIProjectListEntry
 
 // APIProjectListEntry is a project entry

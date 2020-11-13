@@ -11,4 +11,8 @@ func AddRoutes(app *server.App) {
 		Route:   "GET /project",
 		Handler: controllers.ListProjectsController,
 	})
+	app.AddRoute(&server.Route{
+		Route:   "GET /project/*",
+		Handler: controllers.ListProjectController,
+	})
 }
