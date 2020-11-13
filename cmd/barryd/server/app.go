@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/OnitiFR/barry/common"
 )
 
 // App describes an application
@@ -279,9 +281,9 @@ func (app *App) queueFile(projectName string, file File) {
 		return
 	}
 
-	file.ExpireLocal = time.Now().Add(localExpiration.Keep)
+	file.ExpireLocal = file.ModTime.Add(localExpiration.Keep)
 	file.ExpireLocalOrg = localExpiration.Original
-	file.ExpireRemote = time.Now().Add(remoteExpiration.Keep)
+	file.ExpireRemote = file.ModTime.Add(remoteExpiration.Keep)
 	file.ExpireRemoteOrg = remoteExpiration.Original
 	file.RemoteKeep = remoteExpiration.Keep
 
@@ -318,6 +320,15 @@ func (app *App) unqueueFile(projectName string, file File, errIn error) {
 // deleteLocal is called by ProjectDB when a local file must be removed
 func (app *App) deleteLocal(file *File, filePath string) {
 	app.Log.Tracef(file.ProjectName(), "deleting local storage file '%s'", file.Path)
+
+	// TODO: remove this? During first days of production, expiration was
+	// erroneously based on Now() instead of file.ModTime, so we made some
+	// manual cleaning of storage, but now it should report an error.
+	if !common.PathExist(filePath) {
+		app.Log.Warningf(file.ProjectName(), "error deleting local storage file '%s': file does not exists", file.Path)
+		return
+	}
+
 	err := os.Remove(filePath)
 	if err != nil {
 		msg := fmt.Sprintf("error deleting local storage file '%s': %s", file.Path, err)
