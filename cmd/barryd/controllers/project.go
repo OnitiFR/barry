@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/OnitiFR/barry/cmd/barryd/server"
 	"github.com/OnitiFR/barry/common"
@@ -54,7 +55,12 @@ func ListProjectController(req *server.Request) {
 	req.Response.Header().Set("Content-Type", "application/json")
 
 	var retData common.APIFileListEntries
-	projectName := req.SubPath
+	projectName, err := url.PathUnescape(req.SubPath)
+	if err != nil {
+		req.App.Log.Error(server.MsgGlob, err.Error())
+		http.Error(req.Response, err.Error(), 404)
+		return
+	}
 
 	project, err := req.App.ProjectDB.GetByName(projectName)
 	if err != nil {

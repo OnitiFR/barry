@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -36,7 +37,7 @@ var projectListCmd = &cobra.Command{
 		}
 
 		if len(args) > 0 {
-			projectName := args[0]
+			projectName := url.PathEscape(args[0])
 			call := client.GlobalAPI.NewCall("GET", "/project/"+projectName, map[string]string{})
 			call.JSONCallback = projectFileListCB
 			call.Do()
@@ -109,7 +110,6 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 		red := color.New(color.FgHiRed).SprintFunc()
 
 		for _, line := range data {
-
 			maxExpire := line.ExpireRemote
 			if line.ExpireLocal.After(line.ExpireRemote) {
 				maxExpire = line.ExpireLocal
