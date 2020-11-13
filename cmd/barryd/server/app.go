@@ -161,7 +161,7 @@ func (app *App) RunKeepAliveStats(daysInterval int) {
 				time.Sleep(5 * time.Minute)
 			}
 			msg := app.Stats.Report(fmt.Sprintf("since %d day(s)", daysInterval))
-			app.Log.Info(MsgGlob, app.Stats.Report(fmt.Sprintf("since %d day(s)", daysInterval)))
+			app.Log.Info(MsgGlob, msg)
 			app.AlertSender.Send(&Alert{
 				Type:    AlertTypeGood,
 				Subject: "Hi",
