@@ -6,10 +6,17 @@ upload them to a cold-storage Swift ("OVH-flavored") service.
 
 This is a work-in-progress, see the TODO file.
 
-### Install
+### Install (client only)
 
 Make sure Go is installed, then install/update Barry:
-`go get -u github.com/OnitiFR/cmd/...`
+`go get -u github.com/OnitiFR/barry/cmd/barry`
+
+Then, launch `barry` and see the given `.barry.toml` sample content.
+
+### Install (client + server)
+
+Make sure Go is installed, then install/update Barry:
+`go get -u github.com/OnitiFR/barry/cmd/...`
 
 Copy and modify `install/barryd.service` to your `/etc/systemd/system`, 
 then reload systemd with `systemctl daemon-reload`.
