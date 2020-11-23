@@ -29,7 +29,7 @@ listen = ":8787"
 # Notes :
 # - for "multi-files" backups, prefer to use "day" instead of "file"
 # - a "day" stops at midnight, watchout for backups close to midnight.
-# - changing these settings does not impact existing projets!
+# - changing these settings does not impact existing projects!
 [expiration]
 local = [
     "keep 30 days",

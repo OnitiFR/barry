@@ -346,7 +346,7 @@ func (db *ProjectDatabase) expireRemoteFiles() {
 }
 
 // expireClean will removed expired entries from database
-// TODO: remove empty projets
+// TODO: remove empty projects
 func (db *ProjectDatabase) expireClean() {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()

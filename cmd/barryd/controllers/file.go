@@ -35,7 +35,7 @@ func FileStatusController(req *server.Request) {
 
 	var retData common.APIFileStatus
 
-	// … or retreived!
+	// … or retrieved!
 	if file.ExpiredLocal == false {
 		retData.Status = common.APIFileStatusAvailable
 		retData.ETA = 0
@@ -72,6 +72,7 @@ func FileDownloadController(req *server.Request) {
 		http.Error(req.Response, msg, 500)
 		return
 	}
+	// TODO: (double)check file status (unsealed + retrieved)
 	dest, _ := req.App.LocalStoragePath(server.FileStorageName, file.Path)
 
 	http.ServeFile(req.Response, req.HTTP, dest)

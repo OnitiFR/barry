@@ -5,7 +5,7 @@ import "time"
 // File status (for download)
 const (
 	APIFileStatusAvailable  = "available"
-	APIFileStatusRetreiving = "retreiving"
+	APIFileStatusRetreiving = "retrieving"
 	APIFileStatusUnsealing  = "unsealing"
 )
 
