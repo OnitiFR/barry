@@ -116,16 +116,18 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 
 		for _, line := range data {
 			maxExpire := line.ExpireRemote
-			container := ""
+			container := "(local)"
 			if line.ExpireLocal.After(line.ExpireRemote) {
 				maxExpire = line.ExpireLocal
 			}
 			expire := maxExpire.Format("2006-01-02 15:04")
 			if maxExpire.Sub(time.Now()) < time.Hour*24 {
-				expire = red(expire) // will expire in less than 24h
-			} else if line.ExpiredLocal {
-				expire = yellow(expire) // only available on remote
-				container = line.Container
+				expire = red(expire) // will expire in less than one week
+			} else if maxExpire.Sub(time.Now()) < time.Hour*24*7 {
+				expire = yellow(expire)
+			}
+			if line.ExpiredLocal {
+				container = yellow(line.Container)
 			}
 
 			strData = append(strData, []string{
