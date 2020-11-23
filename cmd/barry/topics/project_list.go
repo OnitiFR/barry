@@ -129,7 +129,9 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 			if line.ExpiredLocal {
 				container = yellow(line.Container)
 			}
-
+			if line.Retrieved {
+				container = "(retrieved)"
+			}
 			strData = append(strData, []string{
 				line.Filename,
 				line.ModTime.Format("2006-01-02 15:04"),

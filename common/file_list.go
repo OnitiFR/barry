@@ -16,4 +16,5 @@ type APIFileListEntry struct {
 	ExpiredLocal  bool
 	ExpiredRemote bool
 	Container     string
+	Retrieved     bool
 }

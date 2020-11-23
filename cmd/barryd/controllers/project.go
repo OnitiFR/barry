@@ -91,7 +91,10 @@ func ListProjectController(req *server.Request) {
 			http.Error(req.Response, msg, 500)
 			return
 		}
-
+		retrieved := false
+		if file.RetrievedPath != "" {
+			retrieved = true
+		}
 		retData = append(retData, common.APIFileListEntry{
 			Filename:      file.Filename,
 			ModTime:       file.ModTime,
@@ -102,6 +105,7 @@ func ListProjectController(req *server.Request) {
 			ExpiredLocal:  file.ExpiredLocal,
 			ExpiredRemote: file.ExpiredRemote,
 			Container:     file.Container,
+			Retrieved:     retrieved,
 		})
 	}
 
