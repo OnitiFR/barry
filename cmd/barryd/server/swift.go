@@ -6,9 +6,18 @@ import (
 	"io"
 	"os"
 	"path"
+	"strconv"
+	"time"
 
 	"github.com/c2h5oh/datasize"
 	"github.com/ncw/swift"
+)
+
+// Possible object availability
+const (
+	SwiftObjectSealed    = "sealed"
+	SwiftObjectUnsealing = "unsealing"
+	SwiftObjectUnsealed  = "unsealed"
 )
 
 type tomlSwiftConfig struct {
@@ -161,4 +170,108 @@ func (s *Swift) Delete(file *File) error {
 		return err
 	}
 	return nil
+}
+
+// GetObjetAvailability returns availability, explained with two values:
+// - state (sealed, unsealing, unsealed)
+// - delay in seconds (0 meaning that is file is ready to be downloaded)
+func (s *Swift) GetObjetAvailability(container string, path string) (string, time.Duration, error) {
+	_, headers, err := s.Conn.Object(container, path)
+	if err != nil {
+		return "", 0, err
+	}
+
+	state, stateExists := headers["X-Ovh-Retrieval-State"]
+	if !stateExists {
+		// let's check that all chunks are available, with some providers
+		// it can take a few seconds
+		file, headers, err := s.Conn.ObjectOpen(container, path, false, nil)
+		_, isDLO := headers["X-Object-Manifest"]
+		size, err := file.Length()
+		if err != nil {
+			return "", 0, err
+		}
+
+		if isDLO && size == 0 {
+			return SwiftObjectUnsealing, 10 * time.Second, nil // wait a bit
+		}
+		return SwiftObjectUnsealed, 0, nil
+	}
+
+	switch state {
+	case SwiftObjectSealed:
+		return state, 0, nil
+	case SwiftObjectUnsealing:
+		delay, delayExists := headers["X-Ovh-Retrieval-Delay"]
+		if !delayExists {
+			return "", 0, fmt.Errorf("can't find X-Ovh-Retrieval-Delay for unsealing path %s", path)
+		}
+		secs, err := strconv.Atoi(delay)
+		if err != nil {
+			return "", 0, fmt.Errorf("can't convert '%s' to seconds for path %s", delay, path)
+		}
+		d := time.Duration(secs) * time.Second
+		return state, time.Duration(d), nil
+	case SwiftObjectUnsealed:
+		return state, 0, nil
+	default:
+		return state, 0, fmt.Errorf("unknown state '%s' for path %s", state, path)
+	}
+}
+
+// Unseal a "cold" file, return availability ETA
+func (s *Swift) Unseal(container string, path string) (time.Duration, error) {
+	// fire "unseal" action or open the file if available
+	file, _, err := s.Conn.ObjectOpen(container, path, false, nil)
+
+	if err == nil {
+		// was not sealed
+		file.Close()
+		return 0, nil
+	}
+
+	if err == swift.ObjectNotFound {
+		return 0, err
+	}
+
+	// TooManyRequests = sealed
+	if err == swift.TooManyRequests {
+		state, delay, err := s.GetObjetAvailability(container, path)
+		if err != nil {
+			return 0, err
+		}
+		switch state {
+		case SwiftObjectSealed:
+			return 0, fmt.Errorf("unable to unseal path %s", path)
+		case SwiftObjectUnsealing:
+			return delay, nil
+		case SwiftObjectUnsealed:
+			// immediate unseal? (never seen in the wild :)
+			return 0, nil
+		default:
+			return 0, fmt.Errorf("unknown state '%s' for path %s", state, path)
+		}
+	}
+
+	// any other ObjectOpen error
+	return 0, err
+}
+
+// ObjectOpen a Swift Object, returning a ReadCloser
+func (s *Swift) ObjectOpen(container string, path string) (io.ReadCloser, error) {
+	availability, _, err := s.GetObjetAvailability(container, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if availability != SwiftObjectUnsealed {
+		return nil, errors.New("file is not unsealed")
+	}
+
+	file, _, err := s.Conn.ObjectOpen(container, path, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
 }

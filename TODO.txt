@@ -1,4 +1,5 @@
 ## TODO
+- clean retrieved files
 - commands
     - project info
     - project get

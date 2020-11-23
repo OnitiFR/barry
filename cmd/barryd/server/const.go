@@ -8,6 +8,9 @@ import "time"
 // where local files are stored
 const FileStorageName = "files"
 
+// RetrievedStorageName is the storage subfolder where retrieved files are stored
+const RetrievedStorageName = "retrieved"
+
 // LogHistorySize is the maximum number of messages in app log history
 const LogHistorySize = 5000
 

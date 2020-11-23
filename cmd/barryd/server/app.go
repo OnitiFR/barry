@@ -258,6 +258,92 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 	return nil
 }
 
+// MakeFileAvailable will do all the work needed to make the file available for download
+// This action is asynchronous, the function will return current file status with an ETA.
+// This function is designed to be called repetitively.
+// TODO: add some sort of watcher to jump automatically from "unsealed" to "retrieving" status
+func (app *App) MakeFileAvailable(file *File) (common.APIFileStatus, error) {
+	var status common.APIFileStatus
+
+	if file.ExpiredLocal == false {
+		status.Status = common.APIFileStatusAvailable
+		status.ETA = 0
+		return status, nil
+	}
+
+	if file.RetrievedPath != "" {
+		status.Status = common.APIFileStatusAvailable
+		status.ETA = 0
+		return status, nil
+	}
+
+	if file.retriever != nil {
+		retriever := file.retriever
+
+		if retriever.Finished {
+			file.retriever = nil
+			if retriever.Error != nil {
+				return status, retriever.Error
+			}
+			app.Log.Infof(file.ProjectName(), "file '%s' retrieved", file.Filename)
+			file.RetrievedPath = retriever.Path
+			file.RetrievedDate = time.Now()
+			app.ProjectDB.Save()
+
+			status.Status = common.APIFileStatusAvailable
+			status.ETA = 0
+			return status, nil
+		}
+
+		status.Status = common.APIFileStatusRetrieving
+		status.ETA = retriever.GetETA()
+		return status, nil
+	}
+
+	// check remote status
+	availability, eta, err := app.Swift.GetObjetAvailability(file.Container, file.Path)
+	if err != nil {
+		return status, err
+	}
+
+	switch availability {
+	case SwiftObjectUnsealing:
+		status.Status = common.APIFileStatusUnsealing
+		status.ETA = eta
+		return status, nil
+
+	case SwiftObjectSealed:
+		app.Log.Infof(file.ProjectName(), "unsealing '%s'", file.Path)
+		eta, err := app.Swift.Unseal(file.Container, file.Path)
+		if err != nil {
+			return status, err
+		}
+
+		status.Status = common.APIFileStatusUnsealing
+		status.ETA = eta
+		return status, nil
+
+	case SwiftObjectUnsealed:
+		// TODO: allow two files from two different projects to be retrieved
+		// even if they have the same name!
+		path, err := app.LocalStoragePath(RetrievedStorageName, file.Filename)
+		if err != nil {
+			return status, err
+		}
+		file.retriever, err = NewRetriever(file, app.Swift, path)
+		if err != nil {
+			return status, err
+		}
+		app.Log.Infof(file.ProjectName(), "retrieving '%s'", file.Path)
+		status.Status = common.APIFileStatusRetrieving
+		time.Sleep(5 * time.Second)
+		status.ETA = file.retriever.GetETA()
+		return status, nil
+	}
+
+	return status, fmt.Errorf("unknown availability '%s'", availability)
+}
+
 // should we add this file to the WaitList ?
 func (app *App) waitListFilter(dirName string, fileName string) bool {
 	if app.ProjectDB.FindFile(dirName, fileName) != nil {

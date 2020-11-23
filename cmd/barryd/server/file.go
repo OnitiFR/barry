@@ -30,6 +30,9 @@ type File struct {
 	ExpiredRemote   bool
 	Container       string
 	Cost            float64
+	RetrievedPath   string
+	RetrievedDate   time.Time
+	retriever       *Retriever `json:"-"`
 }
 
 // FileMap is a map of File

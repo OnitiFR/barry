@@ -35,7 +35,7 @@ func ListProjectsController(req *server.Request) {
 		project, err := req.App.ProjectDB.GetByName(name)
 		if err != nil {
 			msg := fmt.Sprintf("project %s: %s", name, err)
-			req.App.Log.Error(server.MsgGlob, msg)
+			req.App.Log.Error(name, msg)
 			http.Error(req.Response, msg, 500)
 			return
 		}
@@ -78,7 +78,7 @@ func ListProjectController(req *server.Request) {
 
 	fileNames, err := req.App.ProjectDB.GetFilenames(project.Path)
 	if err != nil {
-		req.App.Log.Error(server.MsgGlob, err.Error())
+		req.App.Log.Error(project.Path, err.Error())
 		http.Error(req.Response, err.Error(), 500)
 		return
 	}
@@ -87,7 +87,7 @@ func ListProjectController(req *server.Request) {
 		file := req.App.ProjectDB.FindFile(project.Path, name)
 		if file == nil {
 			msg := fmt.Sprintf("error with file '%s'", name)
-			req.App.Log.Error(server.MsgGlob, msg)
+			req.App.Log.Error(project.Path, msg)
 			http.Error(req.Response, msg, 500)
 			return
 		}
@@ -108,7 +108,7 @@ func ListProjectController(req *server.Request) {
 	enc := json.NewEncoder(req.Response)
 	err = enc.Encode(&retData)
 	if err != nil {
-		req.App.Log.Error(server.MsgGlob, err.Error())
+		req.App.Log.Error(project.Path, err.Error())
 		http.Error(req.Response, err.Error(), 500)
 	}
 }

@@ -28,25 +28,22 @@ func FileStatusController(req *server.Request) {
 	file := req.App.ProjectDB.FindFile(projectName, fileName)
 	if file == nil {
 		msg := fmt.Sprintf("error with file '%s' in project '%s'", fileName, projectName)
-		req.App.Log.Error(server.MsgGlob, msg)
+		req.App.Log.Error(projectName, msg)
 		http.Error(req.Response, msg, 500)
 		return
 	}
 
-	var retData common.APIFileStatus
-
-	// … or retrieved!
-	if file.ExpiredLocal == false {
-		retData.Status = common.APIFileStatusAvailable
-		retData.ETA = 0
-	} else {
-		// TODO: things :)
+	retData, err := req.App.MakeFileAvailable(file)
+	if err != nil {
+		req.App.Log.Error(projectName, err.Error())
+		http.Error(req.Response, err.Error(), 500)
+		return
 	}
 
 	enc := json.NewEncoder(req.Response)
 	err = enc.Encode(&retData)
 	if err != nil {
-		req.App.Log.Error(server.MsgGlob, err.Error())
+		req.App.Log.Error(projectName, err.Error())
 		http.Error(req.Response, err.Error(), 500)
 	}
 }
@@ -68,12 +65,38 @@ func FileDownloadController(req *server.Request) {
 	file := req.App.ProjectDB.FindFile(projectName, fileName)
 	if file == nil {
 		msg := fmt.Sprintf("error with file '%s' in project '%s'", fileName, projectName)
-		req.App.Log.Error(server.MsgGlob, msg)
+		req.App.Log.Error(projectName, msg)
 		http.Error(req.Response, msg, 500)
 		return
 	}
-	// TODO: (double)check file status (unsealed + retrieved)
-	dest, _ := req.App.LocalStoragePath(server.FileStorageName, file.Path)
 
-	http.ServeFile(req.Response, req.HTTP, dest)
+	availability, err := req.App.MakeFileAvailable(file)
+	if err != nil {
+		req.App.Log.Error(projectName, err.Error())
+		http.Error(req.Response, err.Error(), 500)
+		return
+	}
+
+	if availability.Status != common.APIFileStatusAvailable {
+		msg := fmt.Sprintf("file '%s' in project '%s' is not available", fileName, projectName)
+		req.App.Log.Error(projectName, msg)
+		http.Error(req.Response, msg, 500)
+		return
+	}
+
+	path := ""
+	if file.ExpiredLocal == false {
+		path, _ = req.App.LocalStoragePath(server.FileStorageName, file.Path)
+	} else if file.RetrievedPath != "" {
+		path = file.RetrievedPath
+	}
+
+	if path == "" {
+		msg := fmt.Sprintf("can't file local path for file '%s' in project '%s'", fileName, projectName)
+		req.App.Log.Error(projectName, msg)
+		http.Error(req.Response, msg, 500)
+		return
+	}
+
+	http.ServeFile(req.Response, req.HTTP, path)
 }
