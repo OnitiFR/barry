@@ -356,9 +356,14 @@ func (db *ProjectDatabase) expireClean() {
 	for _, project := range db.projects {
 		for fileKey, file := range project.Files {
 			if file.ExpiredLocal && file.ExpiredRemote {
+				// if the file was retrieved, also delete the local copy
+				if file.RetrievedPath != "" {
+					go db.deleteLocalFunc(file, file.RetrievedPath) // goroutine, because the mutex is locked
+				}
+
 				dbModified = true
 				delete(project.Files, fileKey)
-				db.log.Infof(file.ProjectName(), "file '%s' removed from databse", file.Path)
+				db.log.Infof(file.ProjectName(), "file '%s' removed from database", file.Path)
 			}
 		}
 	}
