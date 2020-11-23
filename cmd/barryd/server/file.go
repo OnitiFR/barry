@@ -32,7 +32,7 @@ type File struct {
 	Cost            float64
 	RetrievedPath   string
 	RetrievedDate   time.Time
-	retriever       *Retriever `json:"-"`
+	retriever       *Retriever
 }
 
 // FileMap is a map of File
