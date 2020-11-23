@@ -18,6 +18,7 @@ type ProjectDatabase struct {
 	defaultExpiration *ExpirationConfig
 	log               *Log
 	mutex             sync.Mutex
+	alertSender       *AlertSender
 	deleteLocalFunc   ProjectDBDeleteLocalFunc
 	deleteRemoteFunc  ProjectDBDeleteRemoteFunc
 	noBackupAlertFunc ProjectDBNoBackupAlertFunc
@@ -37,6 +38,7 @@ func NewProjectDatabase(
 	filename string,
 	localStoragePath string,
 	defaultExpiration *ExpirationConfig,
+	alertSender *AlertSender,
 	deleteLocalFunc ProjectDBDeleteLocalFunc,
 	deleteRemoteFunc ProjectDBDeleteRemoteFunc,
 	noBackupAlertFunc ProjectDBNoBackupAlertFunc,
@@ -51,6 +53,7 @@ func NewProjectDatabase(
 		deleteRemoteFunc:  deleteRemoteFunc,
 		noBackupAlertFunc: noBackupAlertFunc,
 		log:               log,
+		alertSender:       alertSender,
 	}
 	// if the file exists, load it
 	if _, err := os.Stat(db.filename); err == nil {
@@ -236,6 +239,15 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 		return fmt.Errorf("file '%s' already exists in database for project '%s", file.Filename, projectName)
 	}
 
+	if project.Archived {
+		project.Archived = false
+		db.alertSender.Send(&Alert{
+			Type:    AlertTypeBad,
+			Subject: "Warning",
+			Content: fmt.Sprintf("project '%s' was archived, but a new backup appeared so it's now unarchived", projectName),
+		})
+	}
+
 	project.Files[file.Filename] = file
 	project.FileCount++
 	project.SizeCount += file.Size
@@ -379,7 +391,7 @@ func (db *ProjectDatabase) NoBackupAlerts() {
 
 	for _, project := range db.projects {
 		modTime := project.ModTime()
-		if modTime.IsZero() {
+		if modTime.IsZero() || project.Archived {
 			continue
 		}
 		diff := now.Sub(modTime)

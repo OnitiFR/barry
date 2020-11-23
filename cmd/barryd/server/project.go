@@ -13,6 +13,7 @@ type Project struct {
 	RemoteExpiration  Expiration
 	BackupEvery       time.Duration
 	LastNoBackupAlert time.Time
+	Archived          bool
 
 	SchemaVersion int
 }

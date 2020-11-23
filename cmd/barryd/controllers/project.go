@@ -10,6 +10,19 @@ import (
 	"github.com/OnitiFR/barry/common"
 )
 
+func getEntryFromRequest(req *server.Request) (*server.Project, error) {
+	projectName, err := url.PathUnescape(req.SubPath)
+	if err != nil {
+		return nil, err
+	}
+
+	project, err := req.App.ProjectDB.GetByName(projectName)
+	if err != nil {
+		return nil, err
+	}
+	return project, nil
+}
+
 // ListProjectsController list projects
 func ListProjectsController(req *server.Request) {
 	req.Response.Header().Set("Content-Type", "application/json")
@@ -39,6 +52,7 @@ func ListProjectsController(req *server.Request) {
 			FileCountCurrent: len(project.Files),
 			SizeCountCurrent: totalSize,
 			CostCurrent:      totalCost,
+			Archived:         project.Archived,
 		})
 	}
 
@@ -55,14 +69,7 @@ func ListProjectController(req *server.Request) {
 	req.Response.Header().Set("Content-Type", "application/json")
 
 	var retData common.APIFileListEntries
-	projectName, err := url.PathUnescape(req.SubPath)
-	if err != nil {
-		req.App.Log.Error(server.MsgGlob, err.Error())
-		http.Error(req.Response, err.Error(), 404)
-		return
-	}
-
-	project, err := req.App.ProjectDB.GetByName(projectName)
+	project, err := getEntryFromRequest(req)
 	if err != nil {
 		req.App.Log.Error(server.MsgGlob, err.Error())
 		http.Error(req.Response, err.Error(), 404)
@@ -103,4 +110,64 @@ func ListProjectController(req *server.Request) {
 		req.App.Log.Error(server.MsgGlob, err.Error())
 		http.Error(req.Response, err.Error(), 500)
 	}
+}
+
+// ActionProjectController manage all "actions" on a project
+func ActionProjectController(req *server.Request) {
+	project, err := getEntryFromRequest(req)
+	if err != nil {
+		req.App.Log.Error(server.MsgGlob, err.Error())
+		http.Error(req.Response, err.Error(), 404)
+		return
+	}
+
+	action := req.HTTP.FormValue("action")
+	switch action {
+	case "archive":
+		projectControllerActionArchive(project, req)
+	case "unarchive":
+		projectControllerActionUnarchive(project, req)
+	default:
+		msg := fmt.Sprintf("unknown action '%s'", action)
+		req.App.Log.Error(project.Path, msg)
+		http.Error(req.Response, msg, 400)
+	}
+}
+
+func projectControllerActionArchive(project *server.Project, req *server.Request) {
+	if project.Archived {
+		msg := fmt.Sprintf("project '%s' is already archived", project.Path)
+		req.App.Log.Error(project.Path, msg)
+		http.Error(req.Response, msg, 400)
+		return
+	}
+
+	project.Archived = true
+	err := req.App.ProjectDB.Save()
+	if err != nil {
+		req.App.Log.Error(server.MsgGlob, err.Error())
+		http.Error(req.Response, err.Error(), 500)
+		return
+	}
+
+	req.Printf("project '%s' is now archived\n", project.Path)
+}
+
+func projectControllerActionUnarchive(project *server.Project, req *server.Request) {
+	if !project.Archived {
+		msg := fmt.Sprintf("project '%s' is not archived", project.Path)
+		req.App.Log.Error(project.Path, msg)
+		http.Error(req.Response, msg, 400)
+		return
+	}
+
+	project.Archived = false
+	err := req.App.ProjectDB.Save()
+	if err != nil {
+		req.App.Log.Error(server.MsgGlob, err.Error())
+		http.Error(req.Response, err.Error(), 500)
+		return
+	}
+
+	req.Printf("project '%s' is now unarchived\n", project.Path)
 }

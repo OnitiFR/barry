@@ -60,10 +60,16 @@ func (app *App) Init(trace bool, pretty bool) error {
 		return err
 	}
 
+	app.AlertSender, err = NewAlertSender(app.Config.configPath, app.Log)
+	if err != nil {
+		return err
+	}
+
 	db, err := NewProjectDatabase(
 		dataBaseFilename,
 		localStoragePath,
 		app.Config.Expiration,
+		app.AlertSender,
 		app.deleteLocal,
 		app.deleteRemote,
 		app.sendNoBackupAlert,
@@ -94,11 +100,6 @@ func (app *App) Init(trace bool, pretty bool) error {
 	}
 
 	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift, app.Log)
-
-	app.AlertSender, err = NewAlertSender(app.Config.configPath, app.Log)
-	if err != nil {
-		return err
-	}
 
 	app.Stats = NewStats()
 	app.RunKeepAliveStats(KeepAliveDelayDays)

@@ -9,4 +9,5 @@ type APIProjectListEntry struct {
 	FileCountCurrent int
 	SizeCountCurrent int64
 	CostCurrent      float64
+	Archived         bool
 }

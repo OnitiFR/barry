@@ -74,10 +74,15 @@ func projectListCB(reader io.Reader, headers http.Header) {
 			return
 		}
 
+		grey := color.New(color.FgHiBlack).SprintFunc()
 		strData := [][]string{}
 		for _, line := range data {
+			name := line.Path
+			if line.Archived {
+				name = grey(name)
+			}
 			strData = append(strData, []string{
-				line.Path,
+				name,
 				strconv.Itoa(line.FileCountCurrent),
 				datasize.ByteSize(line.SizeCountCurrent).HR(),
 				fmt.Sprintf("%.2f", line.CostCurrent),
