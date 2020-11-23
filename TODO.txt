@@ -3,7 +3,7 @@
     - project info
     - project get
     - project set
-    - project delete
+    - project delete (with all content?)
     - file info
     - status
 - per-project no-backup alert threshold
@@ -13,7 +13,7 @@
 - HTTPS support for API server
 - error count on files? (maybe to noisy to report each file)
 - create project from cli (so expiration params are ready BEFORE first upload)
-- remove empty project? (so new default settings can be used)
+- remove empty projects? empty archived projects? (so new default settings can be used)
 - allow Swift config from env
 - direct upload to mulch server?
 - use original Expiration values when uploading after a failure
