@@ -116,6 +116,7 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 
 		for _, line := range data {
 			maxExpire := line.ExpireRemote
+			container := ""
 			if line.ExpireLocal.After(line.ExpireRemote) {
 				maxExpire = line.ExpireLocal
 			}
@@ -124,6 +125,7 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 				expire = red(expire) // will expire in less than 24h
 			} else if line.ExpiredLocal {
 				expire = yellow(expire) // only available on remote
+				container = line.Container
 			}
 
 			strData = append(strData, []string{
@@ -131,10 +133,11 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 				line.ModTime.Format("2006-01-02 15:04"),
 				datasize.ByteSize(line.Size).HR(),
 				expire,
+				container,
 			})
 		}
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Name", "mtime", "Size", "Expire"})
+		table.SetHeader([]string{"Name", "mtime", "Size", "Expire", "Container"})
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 		table.SetCenterSeparator("|")
 		table.AppendBulk(strData)

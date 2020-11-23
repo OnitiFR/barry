@@ -15,4 +15,5 @@ type APIFileListEntry struct {
 	RemoteKeep    time.Duration
 	ExpiredLocal  bool
 	ExpiredRemote bool
+	Container     string
 }
