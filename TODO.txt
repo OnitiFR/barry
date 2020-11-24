@@ -1,5 +1,4 @@
 ## TODO
-- clean retrieved files
 - commands
     - project info
     - project get
@@ -16,5 +15,5 @@
 - create project from cli (so expiration params are ready BEFORE first upload)
 - remove empty projects? empty archived projects? (so new default settings can be used)
 - allow Swift config from env
-- direct upload to mulch server?
+- direct upload to mulch server? (barry file script xxx yyy.qcow2 mulch-upload m2)
 - use original Expiration values when uploading after a failure
