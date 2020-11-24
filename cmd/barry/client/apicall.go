@@ -17,6 +17,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/c2h5oh/datasize"
 	"github.com/fatih/color"
+	"github.com/schollz/progressbar"
 )
 
 // API describes the basic elements to call the API
@@ -120,7 +121,7 @@ func (call *APICall) Do() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Fatalf("Error: %s (%v)\nMessage: %s",
+		log.Fatalf("\nError: %s (%v)\nMessage: %s",
 			resp.Status,
 			resp.StatusCode,
 			string(body),
@@ -148,7 +149,7 @@ func (call *APICall) Do() {
 		}
 
 		if call.DestFilePath != "" {
-			err := downloadFile(call.DestFilePath, resp.Body)
+			err := downloadFile(call.DestFilePath, resp)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -188,7 +189,7 @@ func removeAPIKeyFromString(in string, key string) string {
 	return strings.Replace(in, key, "xxx", -1)
 }
 
-func downloadFile(filename string, reader io.Reader) error {
+func downloadFile(filename string, resp *http.Response) error {
 	if common.PathExist(filename) == true {
 		return fmt.Errorf("error: file '%s' already exists", filename)
 	}
@@ -200,7 +201,12 @@ func downloadFile(filename string, reader io.Reader) error {
 
 	fmt.Printf("downloading %s…\n", filename)
 
-	bytesWritten, err := io.Copy(file, reader)
+	bar := progressbar.DefaultBytes(
+		resp.ContentLength,
+		"",
+	)
+
+	bytesWritten, err := io.Copy(io.MultiWriter(file, bar), resp.Body)
 	if err != nil {
 		return err
 	}
