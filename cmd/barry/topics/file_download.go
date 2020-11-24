@@ -38,6 +38,9 @@ var fileDownloadCmd = &cobra.Command{
 		call := client.GlobalAPI.NewCall("GET", "/file/status/"+fileDownloadVars.path, map[string]string{})
 		call.JSONCallback = fileDownloadStatusCB
 
+		// first request can be slow, let's inform the user we understood what he want
+		fmt.Printf("requesting %s…\n", fileDownloadVars.filename)
+
 		fileDownloadVars.loop = true
 		for {
 			call.Do()
