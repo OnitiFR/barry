@@ -108,8 +108,8 @@ func (call *APICall) Do() {
 	}
 
 	req.Header.Set("Barry-Key", call.api.APIKey)
-	req.Header.Set("Barry-Version", Version)
-	req.Header.Set("Barry-Protocol", strconv.Itoa(ProtocolVersion))
+	req.Header.Set("Barry-Version", common.ClientVersion)
+	req.Header.Set("Barry-Protocol", strconv.Itoa(common.ProtocolVersion))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -167,11 +167,11 @@ func (call *APICall) Do() {
 	latestClientVersionKnownByServer := resp.Header.Get("Latest-Known-Client-Version")
 	if latestClientVersionKnownByServer != "" {
 		verFromServer, err1 := semver.Make(latestClientVersionKnownByServer)
-		verSelf, err2 := semver.Make(Version)
+		verSelf, err2 := semver.Make(common.ClientVersion)
 		if err1 == nil && err2 == nil && verFromServer.GT(verSelf) {
 			green := color.New(color.FgHiGreen).SprintFunc()
 			yellow := color.New(color.FgHiYellow).SprintFunc()
-			msg := fmt.Sprintf("According to the server, a client update is available: %s → %s\n", yellow(Version), green(latestClientVersionKnownByServer))
+			msg := fmt.Sprintf("According to the server, a client update is available: %s → %s\n", yellow(common.ClientVersion), green(latestClientVersionKnownByServer))
 			msg = msg + fmt.Sprintf("Update:\n    go get -u github.com/OnitiFR/barry/cmd/barry\n")
 			GetExitMessage().Message = msg
 		}

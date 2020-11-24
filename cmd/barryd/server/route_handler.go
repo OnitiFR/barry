@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/OnitiFR/barry/cmd/barry/client"
+	"github.com/OnitiFR/barry/common"
 )
 
 // Route describes a route to a handler
@@ -122,7 +122,7 @@ func (app *App) registerRouteHandlers(mux *http.ServeMux, inRoutes map[string][]
 
 func routeHandleFunc(route *Route, w http.ResponseWriter, r *http.Request, app *App) {
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
-	w.Header().Set("Latest-Known-Client-Version", client.Version)
+	w.Header().Set("Latest-Known-Client-Version", common.ClientVersion)
 
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 
