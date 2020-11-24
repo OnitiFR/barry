@@ -17,6 +17,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/c2h5oh/datasize"
 	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
 	"github.com/schollz/progressbar"
 )
 
@@ -201,10 +202,15 @@ func downloadFile(filename string, resp *http.Response) error {
 
 	fmt.Printf("downloading %s…\n", filename)
 
-	bar := progressbar.DefaultBytes(
-		resp.ContentLength,
-		"",
-	)
+	var bar io.Writer
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		bar = progressbar.DefaultBytes(
+			resp.ContentLength,
+			"",
+		)
+	} else {
+		bar = ioutil.Discard
+	}
 
 	bytesWritten, err := io.Copy(io.MultiWriter(file, bar), resp.Body)
 	if err != nil {
