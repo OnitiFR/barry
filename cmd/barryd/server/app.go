@@ -48,7 +48,7 @@ func NewApp(config *AppConfig) (*App, error) {
 func (app *App) Init(trace bool, pretty bool) error {
 	app.LogHistory = NewLogHistory(LogHistorySize)
 	app.Log = NewLog(trace, pretty, app.LogHistory)
-	app.Log.Infof(MsgGlob, "starting barry version %s", Version)
+	app.Log.Infof(MsgGlob, "starting barry version %s", common.ServerVersion)
 
 	dataBaseFilename, err := app.LocalStoragePath("data", "projects.db")
 	if err != nil {

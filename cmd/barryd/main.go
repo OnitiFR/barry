@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/OnitiFR/barry/cmd/barryd/server"
+	"github.com/OnitiFR/barry/common"
 )
 
 var configPath = flag.String("path", "./etc/", "configuration path")
@@ -18,7 +19,7 @@ func main() {
 	flag.Parse()
 
 	if *configVersion == true {
-		fmt.Println(server.Version)
+		fmt.Println(common.ServerVersion)
 		os.Exit(0)
 	}
 
@@ -39,22 +40,4 @@ func main() {
 
 	AddRoutes(app)
 	app.Run()
-
-	// app.WaitList.Dump()
-
-	// err = app.ProjectDB.Save()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// for _, projectName := range db.GetNames() {
-	// 	fmt.Printf("- %s\n", projectName)
-	// 	fileNames, err := db.GetFilenames(projectName)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	for _, fileName := range fileNames {
-	// 		fmt.Printf("    - %s\n", fileName)
-	// 	}
-	// }
 }

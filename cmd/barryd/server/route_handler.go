@@ -128,8 +128,8 @@ func routeHandleFunc(route *Route, w http.ResponseWriter, r *http.Request, app *
 
 	if route.NoProtoCheck == false {
 		clientProto, _ := strconv.Atoi(requestGetBarryParam(r, "protocol"))
-		if clientProto != ProtocolVersion {
-			errMsg := fmt.Sprintf("Protocol mismatch, server requires version %d", ProtocolVersion)
+		if clientProto != common.ProtocolVersion {
+			errMsg := fmt.Sprintf("Protocol mismatch, server requires version %d", common.ProtocolVersion)
 			app.Log.Errorf(MsgGlob, "%d: %s", 400, errMsg)
 			http.Error(w, errMsg, 400)
 			return
