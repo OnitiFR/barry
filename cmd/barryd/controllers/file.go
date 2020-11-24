@@ -98,5 +98,7 @@ func FileDownloadController(req *server.Request) {
 		return
 	}
 
+	req.App.Log.Infof(projectName, "file '%s' (%s) is downloaded by key '%s'", fileName, projectName, req.APIKey.Comment)
+
 	http.ServeFile(req.Response, req.HTTP, path)
 }
