@@ -27,4 +27,12 @@ func AddRoutes(app *server.App) {
 		Route:   "GET /file/download/*",
 		Handler: controllers.FileDownloadController,
 	})
+	app.AddRoute(&server.Route{
+		Route:   "GET /key",
+		Handler: controllers.ListKeysController,
+	})
+	app.AddRoute(&server.Route{
+		Route:   "POST /key",
+		Handler: controllers.NewKeyController,
+	})
 }
