@@ -12,7 +12,6 @@
 - add worker status maps ? (idle, uploading) for status command ?
 - filter project without any files? (and add --all option)
 - HTTPS support for API server
-- error count on files? (maybe to noisy to report each file)
 - create project from cli (so expiration params are ready BEFORE first upload)
 - remove empty projects? empty archived projects? (so new default settings can be used)
 - allow Swift config from env
