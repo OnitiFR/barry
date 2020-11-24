@@ -13,6 +13,7 @@ Make sure Go is installed, then install/update Barry:
 
 Then, launch `barry` and see the given `.barry.toml` sample content.
 
+Note: the client requires at least Go 1.12
 ### Install (client + server)
 
 Make sure Go is installed, then install/update Barry:
