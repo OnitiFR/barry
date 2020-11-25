@@ -24,6 +24,14 @@ type ProjectDatabase struct {
 	noBackupAlertFunc ProjectDBNoBackupAlertFunc
 }
 
+// ProjectDBStats hosts stats about the projets and files
+type ProjectDBStats struct {
+	ProjectCount int
+	FileCount    int
+	TotalSize    int64
+	TotalCost    float64
+}
+
 // ProjectDBDeleteLocalFunc is called when a local file expires (as a goroutine)
 type ProjectDBDeleteLocalFunc func(file *File, filePath string)
 
@@ -423,4 +431,22 @@ func (db *ProjectDatabase) NoBackupAlerts() {
 		}
 	}
 
+}
+
+// Stats return DB content stats using a ProjectDBStats object
+func (db *ProjectDatabase) Stats() (ProjectDBStats, error) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	var res ProjectDBStats
+
+	for _, project := range db.projects {
+		res.ProjectCount++
+		for _, file := range project.Files {
+			res.FileCount++
+			res.TotalCost += file.Cost
+			res.TotalSize += file.Size
+		}
+	}
+	return res, nil
 }

@@ -35,4 +35,8 @@ func AddRoutes(app *server.App) {
 		Route:   "POST /key",
 		Handler: controllers.NewKeyController,
 	})
+	app.AddRoute(&server.Route{
+		Route:   "GET /status",
+		Handler: controllers.GetStatusController,
+	})
 }
