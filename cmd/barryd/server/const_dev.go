@@ -38,4 +38,4 @@ const ProjectDefaultBackupEvery = 24 * time.Hour
 const NoBackupAlertSchedule = 1 * time.Hour
 
 // SelfBackupDelay is the delay between each self-backup
-const SelfBackupDelay = 5 * time.Second
+const SelfBackupDelay = 1 * time.Minute

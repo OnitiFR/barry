@@ -129,7 +129,7 @@ func (db *ProjectDatabase) load() error {
 	dec := json.NewDecoder(f)
 	err = dec.Decode(&db.projects)
 	if err != nil {
-		return err
+		return fmt.Errorf("decoding %s: %s", db.filename, err)
 	}
 	return nil
 }
@@ -463,4 +463,9 @@ func (db *ProjectDatabase) Stats() (ProjectDBStats, error) {
 		}
 	}
 	return res, nil
+}
+
+// GetPath of the database
+func (db *ProjectDatabase) GetPath() string {
+	return db.filename
 }

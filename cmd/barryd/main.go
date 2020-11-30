@@ -14,8 +14,7 @@ var configPath = flag.String("path", "./etc/", "configuration path")
 var configTrace = flag.Bool("trace", false, "show trace messages (debug)")
 var configPretty = flag.Bool("pretty", false, "show pretty messages")
 var configVersion = flag.Bool("version", false, "show version")
-
-//var configRestore = flag.Bool("restore", false, "restore databases (emergency)")
+var configRestore = flag.Bool("restore", false, "restore databases (emergency, will ERASE local projects and keys!)")
 
 func main() {
 	flag.Parse()
@@ -38,6 +37,14 @@ func main() {
 	err = app.Init(*configTrace, *configPretty)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if *configRestore {
+		err = app.SelfRestore()
+		if err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(0)
 	}
 
 	AddRoutes(app)

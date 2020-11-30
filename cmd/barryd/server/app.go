@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -40,7 +41,6 @@ const (
 
 // NewApp create a new application
 func NewApp(config *AppConfig) (*App, error) {
-
 	app := &App{
 		StartTime: time.Now(),
 		Config:    config,
@@ -371,6 +371,40 @@ func (app *App) Status() (*common.APIStatus, error) {
 	return &ret, nil
 }
 
+func (app *App) selfRestoreFile(dbFile string, localPath string) error {
+	path := ".barry/" + dbFile
+
+	app.Log.Infof(MsgGlob, "retrieving backup of %s from container %s (%s)", dbFile, app.Config.SelfBackupContainer, path)
+	file, err := os.Create(localPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = app.Swift.FileGetContent(app.Config.SelfBackupContainer, path, file)
+	if err != nil {
+		return err
+	}
+	app.Log.Infof(MsgGlob, "success")
+	return nil
+}
+
+// SelfRestore will retrieve database backups from the self_backup_container
+func (app *App) SelfRestore() error {
+	if app.Config.SelfBackupContainer == "" {
+		return errors.New("no self_backup_container defined")
+	}
+	var err error
+	err = app.selfRestoreFile(FilenameAPIDB, app.APIKeysDB.GetPath())
+	if err != nil {
+		return err
+	}
+	err = app.selfRestoreFile(FilenameProjectDB, app.ProjectDB.GetPath())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (app *App) selfBackup() error {
 	// API keys database
 	keysBuff := new(bytes.Buffer)
@@ -387,7 +421,7 @@ func (app *App) selfBackup() error {
 	projectsBuff := new(bytes.Buffer)
 	err = app.ProjectDB.SaveToWriter(projectsBuff)
 	if err != nil {
-		return nil
+		return err
 	}
 	err = app.Swift.FilePutContent(app.Config.SelfBackupContainer, ".barry/"+FilenameProjectDB, projectsBuff)
 	if err != nil {

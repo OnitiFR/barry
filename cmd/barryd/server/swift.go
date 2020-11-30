@@ -291,3 +291,19 @@ func (s *Swift) FilePutContent(container string, path string, content io.Reader)
 
 	return nil
 }
+
+// FileGetContent will read a file to io.Writer
+func (s *Swift) FileGetContent(container string, path string, output io.Writer) error {
+	source, err := s.ObjectOpen(container, path)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	_, err = io.Copy(output, source)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
