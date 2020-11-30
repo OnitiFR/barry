@@ -408,7 +408,7 @@ func (app *App) ScheduleSelfBackup() {
 		app.Log.Trace(MsgGlob, "starting self-backup")
 		err := app.selfBackup()
 		if err != nil {
-			msg := fmt.Sprintf("self backup error: %s", err)
+			msg := fmt.Sprintf("self-backup error: %s", err)
 			app.Log.Error(MsgGlob, msg)
 			app.AlertSender.Send(&Alert{
 				Type:    AlertTypeBad,
