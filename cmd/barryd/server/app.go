@@ -358,6 +358,7 @@ func (app *App) Status() (*common.APIStatus, error) {
 	ret.FileCount = dbStats.FileCount
 	ret.TotalFileSize = dbStats.TotalSize
 	ret.TotalFileCost = dbStats.TotalCost
+	ret.Workers = app.Uploader.Status
 
 	return &ret, nil
 }

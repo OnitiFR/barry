@@ -37,8 +37,15 @@ func statusDisplay(reader io.Reader, headers http.Header) {
 	for i := 0; i < v.NumField(); i++ {
 		key := typeOfT.Field(i).Name
 		format, _ := typeOfT.Field(i).Tag.Lookup("format")
+		if format == "ignore" {
+			continue
+		}
 		val := common.InterfaceValueToString(v.Field(i).Interface(), format)
 		fmt.Printf("%s: %s\n", key, val)
+	}
+	fmt.Println("workers:")
+	for id, status := range data.Workers {
+		fmt.Printf("  %d: %s\n", id, status)
 	}
 }
 

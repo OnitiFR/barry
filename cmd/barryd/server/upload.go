@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -25,6 +26,7 @@ type Uploader struct {
 	Channel    chan *Upload
 	Swift      *Swift
 	Log        *Log
+	Status     []string
 }
 
 // NewUploader initialize a new instance
@@ -34,6 +36,7 @@ func NewUploader(numWorkers int, swift *Swift, log *Log) *Uploader {
 		Channel:    make(chan *Upload, numWorkers),
 		Swift:      swift,
 		Log:        log,
+		Status:     make([]string, numWorkers),
 	}
 }
 
@@ -61,6 +64,7 @@ func (up *Uploader) worker(id int) {
 	var err error
 	err = nil
 
+	up.Status[id-1] = "idle"
 	up.Log.Tracef(MsgGlob, "worker %d: waiting", id)
 	upload := <-up.Channel
 
@@ -72,6 +76,7 @@ func (up *Uploader) worker(id int) {
 	upload.Tries++
 	upload.LastTry = time.Now()
 
+	up.Status[id-1] = fmt.Sprintf("uploading %s", upload.File.Filename)
 	up.Log.Infof(upload.File.ProjectName(), "worker %d: uploading %s", id, upload.File.Filename)
 	err = up.Swift.Upload(upload.File)
 	if err != nil {
