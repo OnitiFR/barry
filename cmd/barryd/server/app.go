@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -31,6 +32,12 @@ type App struct {
 	routesAPI map[string][]*Route
 }
 
+// Database filenames
+const (
+	FilenameAPIDB     = "api-keys.db"
+	FilenameProjectDB = "projects.db"
+)
+
 // NewApp create a new application
 func NewApp(config *AppConfig) (*App, error) {
 
@@ -50,7 +57,7 @@ func (app *App) Init(trace bool, pretty bool) error {
 	app.Log = NewLog(trace, pretty, app.LogHistory)
 	app.Log.Infof(MsgGlob, "starting barry version %s", common.ServerVersion)
 
-	dataBaseFilename, err := app.LocalStoragePath("data", "projects.db")
+	dataBaseFilename, err := app.LocalStoragePath("data", FilenameProjectDB)
 	if err != nil {
 		return err
 	}
@@ -102,9 +109,8 @@ func (app *App) Init(trace bool, pretty bool) error {
 	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift, app.Log)
 
 	app.Stats = NewStats()
-	app.RunKeepAliveStats(KeepAliveDelayDays)
 
-	keyDataBaseFilename, err := app.LocalStoragePath("data", "api-keys.db")
+	keyDataBaseFilename, err := app.LocalStoragePath("data", FilenameAPIDB)
 	if err != nil {
 		return err
 	}
@@ -115,29 +121,19 @@ func (app *App) Init(trace bool, pretty bool) error {
 	}
 	app.APIKeysDB = keysDB
 
-	// start services
-	app.Uploader.Start()
-	go app.ProjectDB.ScheduleExpireFiles()
-	go app.ProjectDB.ScheduleNoBackupAlerts()
-	go app.ScheduleScan()
-
 	return nil
-}
-
-// ScheduleScan of the WaitList (block, will never return)
-func (app *App) ScheduleScan() {
-	for {
-		err := app.WaitList.Scan()
-		if err != nil {
-			// TODO: add external error reporting
-			app.Log.Errorf(MsgGlob, "queue scan error: %s", err)
-		}
-		time.Sleep(QueueScanDelay)
-	}
 }
 
 // Run will start the app servers (foreground)
 func (app *App) Run() {
+	// start services
+	app.RunKeepAliveStats(KeepAliveDelayDays)
+	app.Uploader.Start()
+	go app.ProjectDB.ScheduleExpireFiles()
+	go app.ProjectDB.ScheduleNoBackupAlerts()
+	go app.ScheduleScan()
+	go app.ScheduleSelfBackup()
+
 	app.registerRouteHandlers(app.MuxAPI, app.routesAPI)
 
 	errChan := make(chan error)
@@ -151,6 +147,18 @@ func (app *App) Run() {
 
 	err := <-errChan
 	log.Fatalf("error: %s", err)
+}
+
+// ScheduleScan of the WaitList (block, will never return)
+func (app *App) ScheduleScan() {
+	for {
+		err := app.WaitList.Scan()
+		if err != nil {
+			// TODO: add external error reporting
+			app.Log.Errorf(MsgGlob, "queue scan error: %s", err)
+		}
+		time.Sleep(QueueScanDelay)
+	}
 }
 
 // RunKeepAliveStats will send a keepalive alert with stats every X days
@@ -361,4 +369,48 @@ func (app *App) Status() (*common.APIStatus, error) {
 	ret.Workers = app.Uploader.Status
 
 	return &ret, nil
+}
+
+func (app *App) selfBackup() error {
+	// API keys database
+	keysBuff := new(bytes.Buffer)
+	err := app.APIKeysDB.SaveToWriter(keysBuff)
+	if err != nil {
+		return err
+	}
+	err = app.Swift.FilePutContent(app.Config.SelfBackupContainer, ".barry/"+FilenameAPIDB, keysBuff)
+	if err != nil {
+		return err
+	}
+
+	// projects & files database
+	projectsBuff := new(bytes.Buffer)
+	err = app.ProjectDB.SaveToWriter(projectsBuff)
+	if err != nil {
+		return nil
+	}
+	err = app.Swift.FilePutContent(app.Config.SelfBackupContainer, ".barry/"+FilenameProjectDB, projectsBuff)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ScheduleSelfBackup will backup our databases on a regular basis
+func (app *App) ScheduleSelfBackup() {
+	if app.Config.SelfBackupContainer == "" {
+		return
+	}
+
+	for {
+		time.Sleep(SelfBackupDelay)
+		app.Log.Trace(MsgGlob, "starting self-backup")
+		err := app.selfBackup()
+		if err != nil {
+			msg := fmt.Sprintf("self backup error: %s", err)
+			app.Log.Error(MsgGlob, msg)
+		}
+		app.Log.Trace(MsgGlob, "self-backup done")
+	}
 }

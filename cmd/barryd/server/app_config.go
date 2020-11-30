@@ -14,14 +14,15 @@ import (
 
 // AppConfig describes the general configuration of an App
 type AppConfig struct {
-	QueuePath        string
-	LocalStoragePath string
-	NumUploaders     int
-	Expiration       *ExpirationConfig
-	Swift            *SwiftConfig
-	API              *APIConfig
-	Containers       []*Container
-	configPath       string
+	QueuePath           string
+	LocalStoragePath    string
+	NumUploaders        int
+	SelfBackupContainer string
+	Expiration          *ExpirationConfig
+	Swift               *SwiftConfig
+	API                 *APIConfig
+	Containers          []*Container
+	configPath          string
 }
 
 // APIConfig describes API server configuration
@@ -30,13 +31,14 @@ type APIConfig struct {
 }
 
 type tomlAppConfig struct {
-	QueuePath        string `toml:"queue_path"`
-	LocalStoragePath string `toml:"local_storage_path"`
-	NumUploaders     int    `toml:"num_uploaders"`
-	Expiration       *tomlExpiration
-	Swift            *tomlSwiftConfig
-	API              *tomlAPIConfig
-	Containers       []*tomlContainer `toml:"container"`
+	QueuePath           string `toml:"queue_path"`
+	LocalStoragePath    string `toml:"local_storage_path"`
+	NumUploaders        int    `toml:"num_uploaders"`
+	SelfBackupContainer string `toml:"self_backup_container"`
+	Expiration          *tomlExpiration
+	Swift               *tomlSwiftConfig
+	API                 *tomlAPIConfig
+	Containers          []*tomlContainer `toml:"container"`
 }
 
 type tomlAPIConfig struct {
@@ -126,6 +128,8 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		return nil, errors.New("at least one uploader is needed (num_uploaders setting)")
 	}
 	appConfig.NumUploaders = tConfig.NumUploaders
+
+	appConfig.SelfBackupContainer = tConfig.SelfBackupContainer
 
 	appConfig.Expiration, err = NewExpirationConfigFromToml(tConfig.Expiration)
 	if err != nil {

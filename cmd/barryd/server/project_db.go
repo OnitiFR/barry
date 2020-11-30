@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"sort"
@@ -139,6 +140,19 @@ func (db *ProjectDatabase) Save() error {
 	defer db.mutex.Unlock()
 
 	return db.save()
+}
+
+// SaveToWriter will save the database to a writer (mutex-protected)
+func (db *ProjectDatabase) SaveToWriter(writer io.Writer) error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	enc := json.NewEncoder(writer)
+	err := enc.Encode(&db.projects)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetNames returns all projects names, sorted

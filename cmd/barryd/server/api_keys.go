@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"strconv"
@@ -103,9 +104,14 @@ func (db *APIKeyDatabase) Save() error {
 	}
 	defer f.Close()
 
-	enc := json.NewEncoder(f)
+	return db.SaveToWriter(f)
+}
+
+// SaveToWriter save the database to a io.Writer
+func (db *APIKeyDatabase) SaveToWriter(writer io.Writer) error {
+	enc := json.NewEncoder(writer)
 	enc.SetIndent("", "  ")
-	err = enc.Encode(&db.keys)
+	err := enc.Encode(&db.keys)
 	if err != nil {
 		return err
 	}

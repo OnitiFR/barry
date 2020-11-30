@@ -14,6 +14,11 @@ local_storage_path = "var/storage"
 # warning: required memory = num_uploaders * chunk_size (at least)
 num_uploaders = 2
 
+# Barry can backup its databases (files & API keys) in any container.
+# Notes: config file is not included, includes sensitive data, keep blank 
+# to disable, see -restore flag to restore backuped databases.
+self_backup_container = "backup_hot"
+
 ## API server configuration
 [api]
 # Listen address of Barry API server (no IP = all interfaces)
@@ -49,7 +54,6 @@ api_key = "***" # "password" in older auth
 auth_url = "***"
 domain = "Default" # specific to V3 auth
 region = "***"
-container = "***"
 chunk_size = "512M" # large objects are split
 
 

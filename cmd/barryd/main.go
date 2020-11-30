@@ -15,6 +15,8 @@ var configTrace = flag.Bool("trace", false, "show trace messages (debug)")
 var configPretty = flag.Bool("pretty", false, "show pretty messages")
 var configVersion = flag.Bool("version", false, "show version")
 
+//var configRestore = flag.Bool("restore", false, "restore databases (emergency)")
+
 func main() {
 	flag.Parse()
 

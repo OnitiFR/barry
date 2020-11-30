@@ -43,7 +43,7 @@ func statusDisplay(reader io.Reader, headers http.Header) {
 		val := common.InterfaceValueToString(v.Field(i).Interface(), format)
 		fmt.Printf("%s: %s\n", key, val)
 	}
-	fmt.Println("workers:")
+	fmt.Println("Workers:")
 	for id, status := range data.Workers {
 		fmt.Printf("  %d: %s\n", id, status)
 	}

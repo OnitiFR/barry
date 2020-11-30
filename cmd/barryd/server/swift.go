@@ -275,3 +275,19 @@ func (s *Swift) ObjectOpen(container string, path string) (io.ReadCloser, error)
 
 	return file, nil
 }
+
+// FilePutContent will create / overwrite a file with a content
+func (s *Swift) FilePutContent(container string, path string, content io.Reader) error {
+	dest, err := s.Conn.ObjectCreate(container, path, false, "", "", nil)
+	if err != nil {
+		return err
+	}
+	defer dest.Close()
+
+	_, err = io.Copy(dest, content)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -31,8 +31,11 @@ const KeepAliveDelayDays = 1
 const CheckExpireEvery = 15 * time.Minute
 
 // ProjectDefaultBackupEvery is the approximate delay between each backup
-// of a project (used by no-bockup alerts)
+// of a project (used by no-backup alerts)
 const ProjectDefaultBackupEvery = 24 * time.Hour
 
-// NoBackupAlertSchedule is delay between each NoBackupAlert check
+// NoBackupAlertSchedule is the delay between each NoBackupAlert check
 const NoBackupAlertSchedule = 1 * time.Hour
+
+// SelfBackupDelay is the delay between each self-backup
+const SelfBackupDelay = 3 * time.Hour
