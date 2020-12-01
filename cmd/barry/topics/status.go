@@ -45,7 +45,7 @@ func statusDisplay(reader io.Reader, headers http.Header) {
 	}
 	fmt.Println("Workers:")
 	for id, status := range data.Workers {
-		fmt.Printf("  %d: %s\n", id, status)
+		fmt.Printf("  %d: %s\n", id+1, status)
 	}
 }
 
