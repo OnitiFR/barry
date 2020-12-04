@@ -25,7 +25,7 @@ type ProjectDatabase struct {
 	noBackupAlertFunc ProjectDBNoBackupAlertFunc
 }
 
-// ProjectDBStats hosts stats about the projets and files
+// ProjectDBStats hosts stats about the projects and files
 type ProjectDBStats struct {
 	ProjectCount int
 	FileCount    int
@@ -367,8 +367,7 @@ func (db *ProjectDatabase) expireRemoteFiles() {
 	}
 }
 
-// expireClean will removed expired entries from database
-// TODO: remove empty projects
+// expireClean will removed expired entries from database (and empty archived projects)
 func (db *ProjectDatabase) expireClean() {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
@@ -387,6 +386,14 @@ func (db *ProjectDatabase) expireClean() {
 				delete(project.Files, fileKey)
 				db.log.Infof(file.ProjectName(), "file '%s' removed from database", file.Path)
 			}
+		}
+	}
+
+	for projectKey, project := range db.projects {
+		if project.Archived && len(project.Files) == 0 {
+			dbModified = true
+			delete(db.projects, projectKey)
+			db.log.Infof(project.Path, "archived project '%s' was empty, removed from database", project.Path)
 		}
 	}
 
