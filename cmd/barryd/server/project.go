@@ -12,6 +12,7 @@ type Project struct {
 	LocalExpiration   Expiration
 	RemoteExpiration  Expiration
 	BackupEvery       time.Duration
+	CustomSettings    bool // will preserve expirations & BackupEvery settings on restart
 	LastNoBackupAlert time.Time
 	Archived          bool
 
@@ -30,9 +31,10 @@ const ProjectNewestVersion = 1
 // NewProject create a new Project struct
 func NewProject(path string, expirationConfig *ExpirationConfig) *Project {
 	project := &Project{
-		Path:        path,
-		Files:       make(FileMap),
-		BackupEvery: ProjectDefaultBackupEvery,
+		Path:          path,
+		Files:         make(FileMap),
+		BackupEvery:   ProjectDefaultBackupEvery,
+		SchemaVersion: ProjectNewestVersion,
 	}
 
 	if expirationConfig != nil {

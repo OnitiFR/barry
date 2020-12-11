@@ -133,7 +133,7 @@ func (wl *WaitList) Scan() error {
 					Status:   FileStatusNew,
 				}
 				project.Files[fileName] = file
-				wl.log.Tracef(dirName, "%s/%s added to wait queue", dirName, fileName)
+				wl.log.Infof(dirName, "%s/%s added to wait queue", dirName, fileName)
 			}
 
 			return nil
