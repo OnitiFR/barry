@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 Sample usage:
 - barry project list
 - barry project list <project>
-- barry file download <project>/<file>
+- barry file download <project> <file>
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("%s\n", cmd.Short)
