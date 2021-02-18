@@ -1,4 +1,5 @@
 ## TODO
+- add retry feature on remote delete
 - commands
     - project info
     - project get
