@@ -14,7 +14,7 @@ const RetrievedStorageName = "retrieved"
 // LogHistorySize is the maximum number of messages in app log history
 const LogHistorySize = 5000
 
-// RetryDelay is used when an upload/move failed
+// RetryDelay is used when an upload/move/delete failed
 const RetryDelay = 15 * time.Minute
 
 // QueueScanDelay is the delay between consecutive queue scans

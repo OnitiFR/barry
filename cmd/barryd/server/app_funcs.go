@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/ncw/swift"
 )
 
 // This file hosts all App "callbacks", the core logic of barryd
@@ -67,7 +69,6 @@ func (app *App) unqueueFile(projectName string, file File, errIn error) {
 	time.Sleep(RetryDelay)
 	app.Log.Tracef(projectName, "set '%s' for a retry", file.Path)
 	app.WaitList.RemoveFile(projectName, file.Filename)
-
 }
 
 // deleteLocal is called by ProjectDB when a local file must be removed
@@ -90,19 +91,41 @@ func (app *App) deleteLocal(file *File, filePath string) {
 
 // deleteRemote is called by ProjectDB when a remote file must be removed
 func (app *App) deleteRemote(file *File) {
-	app.Log.Tracef(file.ProjectName(), "deleting remote storage file '%s'", file.Path)
-	err := app.Swift.Delete(file)
-	if err != nil {
-		msg := fmt.Sprintf("error deleting remote file '%s': %s", file.Path, err)
+	for {
+		app.Log.Tracef(file.ProjectName(), "deleting remote storage file '%s'", file.Path)
+
+		err := app.Swift.Delete(file)
+
+		// no error? log and exit
+		if err == nil {
+			app.Log.Infof(file.ProjectName(), "remote file '%s' deleted", file.Path)
+			return
+		}
+
+		// not found? no need to retry → log, exit
+		if err == swift.ObjectNotFound {
+			msg := fmt.Sprintf("remote file '%s' not found", file.Path)
+			app.Log.Errorf(file.ProjectName(), msg)
+			app.AlertSender.Send(&Alert{
+				Type:    AlertTypeBad,
+				Subject: "Error",
+				Content: msg,
+			})
+			return
+		}
+
+		// log and schedule a retry
+		msg := fmt.Sprintf("error deleting remote file '%s': %s, will retry in %s", file.Path, err, RetryDelay)
 		app.Log.Errorf(file.ProjectName(), msg)
 		app.AlertSender.Send(&Alert{
 			Type:    AlertTypeBad,
 			Subject: "Error",
 			Content: msg,
 		})
-		return
+
+		// wait before next try…
+		time.Sleep(RetryDelay)
 	}
-	app.Log.Infof(file.ProjectName(), "remote file '%s' deleted", file.Path)
 }
 
 func (app *App) sendNoBackupAlert(projects []*Project) {
