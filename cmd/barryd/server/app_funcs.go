@@ -6,8 +6,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-
-	"github.com/OnitiFR/barry/common"
 )
 
 // This file hosts all App "callbacks", the core logic of barryd
@@ -75,14 +73,6 @@ func (app *App) unqueueFile(projectName string, file File, errIn error) {
 // deleteLocal is called by ProjectDB when a local file must be removed
 func (app *App) deleteLocal(file *File, filePath string) {
 	app.Log.Tracef(file.ProjectName(), "deleting local storage file '%s'", file.Path)
-
-	// TODO: remove this? During first days of production, expiration was
-	// erroneously based on Now() instead of file.ModTime, so we made some
-	// manual cleaning of storage, but now it should report an error.
-	if !common.PathExist(filePath) {
-		app.Log.Warningf(file.ProjectName(), "error deleting local storage file '%s': file does not exists", file.Path)
-		return
-	}
 
 	err := os.Remove(filePath)
 	if err != nil {

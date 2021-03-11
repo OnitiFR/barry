@@ -11,11 +11,11 @@ queue_path = "var/queue"
 local_storage_path = "var/storage"
 
 # Maximum files to upload at the same time
-# warning: required memory = num_uploaders * chunk_size (at least)
+# warning: minimum required memory = num_uploaders * chunk_size * 2
 num_uploaders = 2
 
 # Barry can backup its databases (files & API keys) in any container.
-# Notes: config file is not included, includes sensitive data, keep blank 
+# Notes: config file is not included, includes sensitive data, keep blank
 # to disable, see -restore flag to restore backuped databases.
 self_backup_container = "backup_hot"
 
