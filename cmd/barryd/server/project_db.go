@@ -77,6 +77,11 @@ func NewProjectDatabase(
 		return nil, err
 	}
 
+	err = db.updateExpirations()
+	if err != nil {
+		return nil, err
+	}
+
 	// save the file to check if it's writable
 	// (no mutex lock, we're still in the single main thread)
 	err = db.save()
@@ -85,7 +90,22 @@ func NewProjectDatabase(
 	}
 
 	return db, nil
+}
 
+// update default expiration
+// update default alert setting, too?
+func (db *ProjectDatabase) updateExpirations() error {
+	for _, project := range db.projects {
+		if project.LocalExpiration.Custom == false {
+			project.LocalExpiration.Lines = db.defaultExpiration.Local.Lines
+		}
+	}
+	for _, project := range db.projects {
+		if project.RemoteExpiration.Custom == false {
+			project.RemoteExpiration.Lines = db.defaultExpiration.Remote.Lines
+		}
+	}
+	return nil
 }
 
 // upgrade projects schema version

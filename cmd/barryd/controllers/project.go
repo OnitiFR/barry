@@ -4,17 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/OnitiFR/barry/cmd/barryd/server"
 	"github.com/OnitiFR/barry/common"
 )
 
 func getEntryFromRequest(req *server.Request) (*server.Project, error) {
-	projectName, err := url.PathUnescape(req.SubPath)
-	if err != nil {
-		return nil, err
-	}
+	projectName := req.HTTP.FormValue("project")
 
 	project, err := req.App.ProjectDB.GetByName(projectName)
 	if err != nil {

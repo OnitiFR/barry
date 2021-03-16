@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"path/filepath"
 
 	"github.com/OnitiFR/barry/cmd/barryd/server"
@@ -15,12 +14,7 @@ import (
 func FileStatusController(req *server.Request) {
 	req.Response.Header().Set("Content-Type", "application/json")
 
-	fullPath, err := url.PathUnescape(req.SubPath)
-	if err != nil {
-		req.App.Log.Error(server.MsgGlob, err.Error())
-		http.Error(req.Response, err.Error(), 404)
-		return
-	}
+	fullPath := req.HTTP.FormValue("file")
 
 	projectName := filepath.Dir(fullPath)
 	fileName := filepath.Base(fullPath)
@@ -52,12 +46,7 @@ func FileStatusController(req *server.Request) {
 func FileDownloadController(req *server.Request) {
 	req.Response.Header().Set("Content-Type", "application/octet-stream")
 
-	fullPath, err := url.PathUnescape(req.SubPath)
-	if err != nil {
-		req.App.Log.Error(server.MsgGlob, err.Error())
-		http.Error(req.Response, err.Error(), 404)
-		return
-	}
+	fullPath := req.HTTP.FormValue("file")
 
 	projectName := filepath.Dir(fullPath)
 	fileName := filepath.Base(fullPath)

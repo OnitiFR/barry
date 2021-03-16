@@ -28,6 +28,7 @@ type ExpirationConfig struct {
 
 // Expiration host an expiration cycle, each project has two (local, remote)
 type Expiration struct {
+	Custom        bool // was customized? (versus "cloned from config")
 	FileCount     int
 	ReferenceDate time.Time
 	Lines         []ExpirationLine

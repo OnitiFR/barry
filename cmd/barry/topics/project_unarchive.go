@@ -14,8 +14,9 @@ var projectUnarchiveCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		projectName := url.PathEscape(args[0])
-		call := client.GlobalAPI.NewCall("POST", "/project/"+projectName, map[string]string{
-			"action": "unarchive",
+		call := client.GlobalAPI.NewCall("POST", "/project", map[string]string{
+			"project": projectName,
+			"action":  "unarchive",
 		})
 		call.Do()
 	},

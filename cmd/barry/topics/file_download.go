@@ -6,9 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 
@@ -34,8 +32,10 @@ var fileDownloadCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		fileDownloadVars.filename = args[1]
-		fileDownloadVars.path = url.PathEscape(path.Clean(args[0] + "/" + url.PathEscape(args[1])))
-		call := client.GlobalAPI.NewCall("GET", "/file/status/"+fileDownloadVars.path, map[string]string{})
+		fileDownloadVars.path = args[0] + "/" + args[1]
+		call := client.GlobalAPI.NewCall("GET", "/file/status", map[string]string{
+			"file": fileDownloadVars.path,
+		})
 		call.JSONCallback = fileDownloadStatusCB
 
 		// first request can be slow, let's inform the user we understood what he want
@@ -101,7 +101,9 @@ func fileDownloadDo() {
 		fmt.Println()
 	}
 
-	call := client.GlobalAPI.NewCall("GET", "/file/download/"+fileDownloadVars.path, map[string]string{})
+	call := client.GlobalAPI.NewCall("GET", "/file/download", map[string]string{
+		"file": fileDownloadVars.path,
+	})
 	call.DestFilePath = filepath.Base(fileDownloadVars.filename)
 	call.Do()
 }

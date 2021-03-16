@@ -12,7 +12,6 @@ type Project struct {
 	LocalExpiration   Expiration
 	RemoteExpiration  Expiration
 	BackupEvery       time.Duration
-	CustomSettings    bool // will preserve expirations & BackupEvery settings on restart
 	LastNoBackupAlert time.Time
 	Archived          bool
 

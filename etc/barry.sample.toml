@@ -24,7 +24,7 @@ self_backup_container = "backup_hot"
 # Listen address of Barry API server (no IP = all interfaces)
 listen = ":8787"
 
-# Default file expiration settings, it's possible to change this at project
+# Default file expiration settings, it's possible to customize this at project
 # level using the client.
 #
 # - format: keep XX [day(s)|year(s)] every YY [day|file]
@@ -34,7 +34,8 @@ listen = ":8787"
 # Notes :
 # - for "multi-files" backups, prefer to use "day" instead of "file"
 # - a "day" stops at midnight, watchout for backups close to midnight.
-# - changing these settings does not impact existing projects!
+# - changing these settings does not impact existing backups (but it will
+#   update existing non-customized project expirations)
 [expiration]
 local = [
     "keep 30 days",

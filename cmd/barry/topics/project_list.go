@@ -38,7 +38,9 @@ var projectListCmd = &cobra.Command{
 
 		if len(args) > 0 {
 			projectName := url.PathEscape(args[0])
-			call := client.GlobalAPI.NewCall("GET", "/project/"+projectName, map[string]string{})
+			call := client.GlobalAPI.NewCall("GET", "/project/files", map[string]string{
+				"project": projectName,
+			})
 			call.JSONCallback = projectFileListCB
 			call.Do()
 		} else {

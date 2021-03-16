@@ -5,6 +5,12 @@ import (
 	"github.com/OnitiFR/barry/cmd/barryd/server"
 )
 
+// Note:
+// We've made the decision to use a non-REST-like way to pass project and file
+// names to the API, using query arguments instead of query paths. It makes
+// thing way easier for everyone for some special cases (like the '.' project)
+// and the drawbacks are very limited for us.
+
 // AddRoutes defines all API routes for the application
 func AddRoutes(app *server.App) {
 	app.AddRoute(&server.Route{
@@ -12,11 +18,11 @@ func AddRoutes(app *server.App) {
 		Handler: controllers.ListProjectsController,
 	})
 	app.AddRoute(&server.Route{
-		Route:   "GET /project/*",
+		Route:   "GET /project/files",
 		Handler: controllers.ListProjectController,
 	})
 	app.AddRoute(&server.Route{
-		Route:   "POST /project/*",
+		Route:   "POST /project",
 		Handler: controllers.ActionProjectController,
 	})
 	app.AddRoute(&server.Route{
