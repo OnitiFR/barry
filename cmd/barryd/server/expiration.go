@@ -183,3 +183,11 @@ func (exp *Expiration) GetNext(modTime time.Time) ExpirationResult {
 
 	return maxExpiration
 }
+
+func (exp *Expiration) String() string {
+	lines := make([]string, len(exp.Lines))
+	for i, line := range exp.Lines {
+		lines[i] = line.Original
+	}
+	return strings.Join(lines, ", ")
+}

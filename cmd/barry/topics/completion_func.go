@@ -36,7 +36,7 @@ __internal_file_download() {
 
 __custom_func() {
     case ${last_command} in
-		barry_project_list)
+		barry_project_list | barry_project_infos)
             __internal_list_projects
             return
             ;;

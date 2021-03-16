@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/OnitiFR/barry/cmd/barryd/server"
 	"github.com/OnitiFR/barry/common"
@@ -103,6 +104,61 @@ func ListProjectController(req *server.Request) {
 			Container:     file.Container,
 			Retrieved:     retrieved,
 		})
+	}
+
+	enc := json.NewEncoder(req.Response)
+	err = enc.Encode(&retData)
+	if err != nil {
+		req.App.Log.Error(project.Path, err.Error())
+		http.Error(req.Response, err.Error(), 500)
+	}
+}
+
+// InfosProjectController will return various infos and settings of a project
+func InfosProjectController(req *server.Request) {
+	req.Response.Header().Set("Content-Type", "application/json")
+
+	project, err := getEntryFromRequest(req)
+	if err != nil {
+		req.App.Log.Error(server.MsgGlob, err.Error())
+		http.Error(req.Response, err.Error(), 404)
+		return
+	}
+
+	var totalSize int64
+	var totalCost float64
+	newestModTime := time.Time{}
+	finalExpiration := time.Time{}
+	for _, file := range project.Files {
+		totalSize += file.Size
+		totalCost += file.Cost
+		if file.ModTime.After(newestModTime) {
+			newestModTime = file.ModTime
+		}
+		// get farthest expiration (remote vs local)
+		lastExpire := file.ExpireRemote
+		if file.ExpireLocal.After(lastExpire) {
+			lastExpire = file.ExpireLocal
+		}
+
+		if finalExpiration.IsZero() {
+			finalExpiration = lastExpire
+		}
+		if lastExpire.After(finalExpiration) {
+			finalExpiration = lastExpire
+		}
+	}
+
+	retData := common.APIProjectInfos{
+		FileCountCurrent:    len(project.Files),
+		SizeCountCurrent:    totalSize,
+		CostCurrent:         totalCost,
+		Archived:            project.Archived,
+		BackupEvery:         project.BackupEvery,
+		NewestModTime:       newestModTime,
+		FinalExpiration:     finalExpiration,
+		LocalExpirationStr:  project.LocalExpiration.String(),
+		RemoteExpirationStr: project.RemoteExpiration.String(),
 	}
 
 	enc := json.NewEncoder(req.Response)
