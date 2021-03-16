@@ -55,10 +55,13 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolP("trace", "t", false, "also show server TRACE messages (debug)")
 	rootCmd.PersistentFlags().BoolP("time", "d", false, "show server timestamps on messages")
+
+	rootCmd.PersistentFlags().BoolP("get-config-filename", "", false, "get current config filename (useful for completion)")
+	rootCmd.PersistentFlags().MarkHidden("get-config-filename")
 }
 
 func setCompletion() {
-	// rootCmd.BashCompletionFunction = bashCompletionFunc
+	rootCmd.BashCompletionFunction = bashCompletionFunc
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -97,4 +100,8 @@ Note: you can also use environment variables (TRACE, TIME).
 	)
 
 	setCompletion()
+	if rootCmd.PersistentFlags().Lookup("get-config-filename").Changed {
+		fmt.Println(cfgFile)
+		os.Exit(0)
+	}
 }
