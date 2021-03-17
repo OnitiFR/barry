@@ -44,7 +44,7 @@ __internal_file_download() {
     fi
 }
 
-__custom_func() {
+__barry_custom_func() {
     case ${last_command} in
 		barry_project_list | barry_project_infos)
             __internal_list_projects
