@@ -273,7 +273,7 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 func (app *App) MakeFileAvailable(file *File) (common.APIFileStatus, error) {
 	var status common.APIFileStatus
 
-	if file.ExpiredLocal == false {
+	if !file.ExpiredLocal {
 		status.Status = common.APIFileStatusAvailable
 		status.ETA = 0
 		return status, nil
@@ -393,8 +393,7 @@ func (app *App) SelfRestore() error {
 	if app.Config.SelfBackupContainer == "" {
 		return errors.New("no self_backup_container defined")
 	}
-	var err error
-	err = app.selfRestoreFile(FilenameAPIDB, app.APIKeysDB.GetPath())
+	err := app.selfRestoreFile(FilenameAPIDB, app.APIKeysDB.GetPath())
 	if err != nil {
 		return err
 	}

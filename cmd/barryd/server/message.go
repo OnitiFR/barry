@@ -92,7 +92,7 @@ func (message *Message) Print(showTime bool, showTopic bool) error {
 		content = c(content)
 		mtype = c(mtype)
 	case MessageFailure:
-		retError = errors.New("Exiting with failure status due to previous errors")
+		retError = errors.New("exiting with failure status due to previous errors")
 		c := color.New(color.FgHiRed).SprintFunc()
 		content = c(content)
 		mtype = c(mtype)

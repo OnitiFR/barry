@@ -93,7 +93,7 @@ func (lh *LogHistory) Search(maxMessages int, topic string) []*Message {
 	curr := lh.newest
 	count := 0
 	for curr != nil && count < maxMessages {
-		if curr.payload.MatchTarget(topic) == false {
+		if !curr.payload.MatchTarget(topic) {
 			curr = curr.older
 			continue
 		}

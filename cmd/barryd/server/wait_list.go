@@ -70,7 +70,7 @@ func (wl *WaitList) Scan() error {
 	err := filepath.Walk(wl.watchPath,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return fmt.Errorf("Walk: %s", err.Error())
+				return fmt.Errorf("walk: %s", err.Error())
 			}
 
 			if info.IsDir() {
@@ -91,7 +91,7 @@ func (wl *WaitList) Scan() error {
 			fileName := filepath.Base(relPath)
 
 			// apply filter
-			if wl.filterFunc(dirName, fileName) == false {
+			if !wl.filterFunc(dirName, fileName) {
 				return nil
 			}
 

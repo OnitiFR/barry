@@ -14,11 +14,8 @@ import (
 
 // should we add this file to the WaitList ?
 func (app *App) waitListFilter(dirName string, fileName string) bool {
-	if app.ProjectDB.FindFile(dirName, fileName) != nil {
-		// no, this file is already in the database
-		return false
-	}
-	return true
+	// do not add the file again if it's already in the db
+	return !app.ProjectDB.FileExists(dirName, fileName)
 }
 
 // queueFile is called when a file is ready to be uploaded, we must be non-blocking!

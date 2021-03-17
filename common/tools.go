@@ -33,31 +33,32 @@ func PathExist(path string) bool {
 // InterfaceValueToString converts most interface types to string
 func InterfaceValueToString(iv interface{}, format string) string {
 
-	switch iv.(type) {
+	// civ is the casted iv
+	switch civ := iv.(type) {
 	case int:
-		return fmt.Sprintf("%d", iv.(int))
+		return fmt.Sprintf("%d", civ)
 	case int32:
-		return fmt.Sprintf("%d", iv.(int32))
+		return fmt.Sprintf("%d", civ)
 	case int64:
 		if format == "size" {
-			return (datasize.ByteSize(iv.(int64)) * datasize.B).HR()
+			return (datasize.ByteSize(civ) * datasize.B).HR()
 		}
-		return strconv.FormatInt(iv.(int64), 10)
+		return strconv.FormatInt(civ, 10)
 	case uint64:
 		if format == "size" {
-			return (datasize.ByteSize(iv.(int64)) * datasize.B).HR()
+			return (datasize.ByteSize(civ) * datasize.B).HR()
 		}
-		return strconv.FormatUint(iv.(uint64), 10)
+		return strconv.FormatUint(civ, 10)
 	case float32:
 		if format == "money" {
-			return fmt.Sprintf("%.2f", iv.(float32))
+			return fmt.Sprintf("%.2f", civ)
 		}
-		return fmt.Sprintf("%f", iv.(float32))
+		return fmt.Sprintf("%f", civ)
 	case float64:
 		if format == "money" {
-			return strconv.FormatFloat(iv.(float64), 'f', 2, 64)
+			return strconv.FormatFloat(civ, 'f', 2, 64)
 		}
-		return strconv.FormatFloat(iv.(float64), 'f', -1, 64)
+		return strconv.FormatFloat(civ, 'f', -1, 64)
 	case string:
 		return iv.(string)
 	case []byte:
@@ -65,11 +66,11 @@ func InterfaceValueToString(iv interface{}, format string) string {
 	case bool:
 		return strconv.FormatBool(iv.(bool))
 	case time.Time:
-		return iv.(time.Time).String()
+		return civ.String()
 	case time.Duration:
-		return iv.(time.Duration).String()
+		return civ.String()
 	case []string:
-		return strings.Join(iv.([]string), ", ")
+		return strings.Join(civ, ", ")
 	}
 	return "INVALID_TYPE"
 }

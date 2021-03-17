@@ -24,15 +24,6 @@ type Route struct {
 	path   string
 }
 
-func isRouteMethodAllowed(method string, methods []string) bool {
-	for _, m := range methods {
-		if strings.ToUpper(m) == strings.ToUpper(method) {
-			return true
-		}
-	}
-	return false
-}
-
 // extract a generic parameter from the request (API key, protocol, etc)
 // from the headers (new way, "Barry-Name") or from FormValue (old way, "name")
 func requestGetBarryParam(r *http.Request, name string) string {
@@ -110,8 +101,8 @@ func (app *App) registerRouteHandlers(mux *http.ServeMux, inRoutes map[string][]
 
 				if validRoute == nil {
 					errMsg := fmt.Sprintf("Method was %s for route %s", r.Method, path)
-					app.Log.Errorf(MsgGlob, "%d: %s", 405, errMsg)
-					http.Error(w, errMsg, 405)
+					app.Log.Errorf(MsgGlob, "%d: %s", http.StatusMethodNotAllowed, errMsg)
+					http.Error(w, errMsg, http.StatusMethodNotAllowed)
 					return
 				}
 				routeHandleFunc(validRoute, w, r, app)
@@ -126,7 +117,7 @@ func routeHandleFunc(route *Route, w http.ResponseWriter, r *http.Request, app *
 
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 
-	if route.NoProtoCheck == false {
+	if !route.NoProtoCheck {
 		clientProto, _ := strconv.Atoi(requestGetBarryParam(r, "protocol"))
 		if clientProto != common.ProtocolVersion {
 			errMsg := fmt.Sprintf("Protocol mismatch, server requires version %d", common.ProtocolVersion)
@@ -147,12 +138,12 @@ func routeHandleFunc(route *Route, w http.ResponseWriter, r *http.Request, app *
 		App:      app,
 	}
 
-	if route.Public == false {
+	if !route.Public {
 		valid, key := app.APIKeysDB.IsValidKey(requestGetBarryParam(r, "key"))
-		if valid == false {
+		if !valid {
 			errMsg := "invalid key"
-			app.Log.Errorf(MsgGlob, "%d: %s", 403, errMsg)
-			http.Error(w, errMsg, 403)
+			app.Log.Errorf(MsgGlob, "%d: %s", http.StatusForbidden, errMsg)
+			http.Error(w, errMsg, http.StatusForbidden)
 			return
 		}
 		request.APIKey = key

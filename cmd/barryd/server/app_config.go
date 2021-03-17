@@ -120,7 +120,7 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	if sameDevice == false {
+	if !sameDevice {
 		return nil, fmt.Errorf("'%s' and '%s' must be on the same disk/device/partition", appConfig.QueuePath, appConfig.LocalStoragePath)
 	}
 

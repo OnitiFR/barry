@@ -62,7 +62,6 @@ func (up *Uploader) Start() {
 
 func (up *Uploader) worker(id int) {
 	var err error
-	err = nil
 
 	up.Status[id-1] = "idle"
 	up.Log.Tracef(MsgGlob, "worker %d: waiting", id)

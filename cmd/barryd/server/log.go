@@ -23,7 +23,7 @@ func NewLog(trace bool, pretty bool, history *LogHistory) *Log {
 // Log is a low-level function for sending a Message
 func (log *Log) Log(message *Message) {
 
-	if !(message.Type == MessageTrace && log.trace == false) {
+	if !(message.Type == MessageTrace && !log.trace) {
 		if log.pretty {
 			message.Print(true, true)
 		} else {

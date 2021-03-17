@@ -75,7 +75,7 @@ func (r *Retriever) copy(bufferSize int64) {
 		// update ETA
 		r.downloadedSize += int64(n)
 		done := float64(r.downloadedSize) / float64(r.totalSize)
-		elapsed := time.Now().Sub(r.startedAt).Seconds()
+		elapsed := time.Since(r.startedAt).Seconds()
 
 		r.mutex.Lock()
 		r.ETA = time.Second*time.Duration(elapsed/done) - time.Second*time.Duration(elapsed)

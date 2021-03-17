@@ -186,12 +186,15 @@ func (s *Swift) GetObjetAvailability(container string, path string) (string, tim
 		// let's check that all chunks are available, with some providers
 		// it can take a few seconds
 		file, headers, err := s.Conn.ObjectOpen(container, path, false, nil)
-		_, isDLO := headers["X-Object-Manifest"]
+		if err != nil {
+			return "", 0, err
+		}
 		size, err := file.Length()
 		if err != nil {
 			return "", 0, err
 		}
 
+		_, isDLO := headers["X-Object-Manifest"]
 		if isDLO && size == 0 {
 			return SwiftObjectUnsealing, 10 * time.Second, nil // wait a bit
 		}

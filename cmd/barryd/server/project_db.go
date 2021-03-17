@@ -96,12 +96,12 @@ func NewProjectDatabase(
 // update default alert setting, too?
 func (db *ProjectDatabase) updateExpirations() error {
 	for _, project := range db.projects {
-		if project.LocalExpiration.Custom == false {
+		if !project.LocalExpiration.Custom {
 			project.LocalExpiration.Lines = db.defaultExpiration.Local.Lines
 		}
 	}
 	for _, project := range db.projects {
-		if project.RemoteExpiration.Custom == false {
+		if !project.RemoteExpiration.Custom {
 			project.RemoteExpiration.Lines = db.defaultExpiration.Remote.Lines
 		}
 	}
@@ -246,6 +246,11 @@ func (db *ProjectDatabase) FindFile(projectName string, fileName string) *File {
 	return file
 }
 
+// FileExists returns true if the file exists in the project
+func (db *ProjectDatabase) FileExists(projectName string, fileName string) bool {
+	return db.FindFile(projectName, fileName) != nil
+}
+
 // FindOrCreateProject will return an existing project or create a new one if needed
 func (db *ProjectDatabase) FindOrCreateProject(projectName string) (*Project, error) {
 	db.mutex.Lock()
@@ -353,7 +358,7 @@ func (db *ProjectDatabase) expireLocalFiles() {
 		}
 	}
 
-	if dbModified == true {
+	if dbModified {
 		err := db.save()
 		if err != nil {
 			db.log.Errorf(MsgGlob, "error saving database: %s", err)
@@ -379,7 +384,7 @@ func (db *ProjectDatabase) expireRemoteFiles() {
 		}
 	}
 
-	if dbModified == true {
+	if dbModified {
 		err := db.save()
 		if err != nil {
 			db.log.Errorf(MsgGlob, "error saving database: %s", err)
@@ -417,7 +422,7 @@ func (db *ProjectDatabase) expireClean() {
 		}
 	}
 
-	if dbModified == true {
+	if dbModified {
 		err := db.save()
 		if err != nil {
 			db.log.Errorf(MsgGlob, "error saving database: %s", err)
@@ -465,7 +470,7 @@ func (db *ProjectDatabase) NoBackupAlerts() {
 		db.noBackupAlertFunc(noBackupProjects)
 	}
 
-	if dbModified == true {
+	if dbModified {
 		err := db.save()
 		if err != nil {
 			db.log.Errorf(MsgGlob, "error saving database: %s", err)

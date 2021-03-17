@@ -74,7 +74,7 @@ func FileDownloadController(req *server.Request) {
 	}
 
 	path := ""
-	if file.ExpiredLocal == false {
+	if !file.ExpiredLocal {
 		path, _ = req.App.LocalStoragePath(server.FileStorageName, file.Path)
 	} else if file.RetrievedPath != "" {
 		path = file.RetrievedPath
