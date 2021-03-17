@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/OnitiFR/barry/cmd/barryd/server"
@@ -189,6 +191,78 @@ func ActionProjectController(req *server.Request) {
 		req.App.Log.Error(project.Path, msg)
 		http.Error(req.Response, msg, 400)
 	}
+}
+
+func SettingProjectController(req *server.Request) {
+	project, err := getEntryFromRequest(req)
+	if err != nil {
+		req.App.Log.Error(server.MsgGlob, err.Error())
+		http.Error(req.Response, err.Error(), 404)
+		return
+	}
+	setting := req.HTTP.FormValue("setting")
+	value := req.HTTP.FormValue("value")
+
+	var exp server.Expiration
+
+	switch setting {
+	case "backup_every":
+		err = projectControllerSetBackupEvery(project, value)
+	case "local_expiration":
+		exp, err = projectControllerParseExpiration(project, value)
+		if err == nil {
+			project.LocalExpiration = exp
+		}
+	case "remote_expiration":
+		exp, err = projectControllerParseExpiration(project, value)
+		fmt.Println(err)
+		if err == nil {
+			project.RemoteExpiration = exp
+		}
+	default:
+		err = fmt.Errorf("unknown setting '%s'", setting)
+	}
+
+	if err != nil {
+		req.App.Log.Error(server.MsgGlob, err.Error())
+		http.Error(req.Response, err.Error(), 400)
+		return
+	}
+
+	err = req.App.ProjectDB.Save()
+	if err != nil {
+		req.App.Log.Error(server.MsgGlob, err.Error())
+		http.Error(req.Response, err.Error(), 500)
+		return
+	}
+
+	req.Printf("project '%s': setting '%s' updated\n", project.Path, setting)
+}
+
+func projectControllerSetBackupEvery(project *server.Project, value string) error {
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return err
+	}
+
+	if duration < 1*time.Minute {
+		return errors.New("duration is too low")
+	}
+
+	project.BackupEvery = duration
+	return nil
+}
+
+func projectControllerParseExpiration(project *server.Project, value string) (server.Expiration, error) {
+	parts := strings.Split(value, ",")
+	exp, err := server.ParseExpiration(parts)
+	if err != nil {
+		return exp, err
+	}
+
+	// this now a custom settings, it will not be erased on restart
+	exp.Custom = true
+	return exp, nil
 }
 
 func projectControllerActionArchive(project *server.Project, req *server.Request) {

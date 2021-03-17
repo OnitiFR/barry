@@ -25,6 +25,16 @@ __internal_list_files() {
     fi
 }
 
+__internal_project_set() {
+	local prev_prev_prev=${COMP_WORDS[COMP_CWORD-3]}
+    if [ "$prev" =  "set" ]; then
+        out=(backup_every local_expiration remote_expiration)
+        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+    elif [ "$prev_prev_prev" =  "set" ]; then
+        __internal_list_projects
+    fi
+}
+
 __internal_file_download() {
 	local prev_prev=${COMP_WORDS[COMP_CWORD-2]}
     if [ "$prev" =  "download" ]; then
@@ -38,6 +48,10 @@ __custom_func() {
     case ${last_command} in
 		barry_project_list | barry_project_infos)
             __internal_list_projects
+            return
+            ;;
+		barry_project_set)
+			__internal_project_set
             return
             ;;
 		barry_file_download)

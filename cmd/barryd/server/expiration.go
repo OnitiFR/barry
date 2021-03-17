@@ -58,23 +58,26 @@ func ParseExpiration(linesIn []string) (Expiration, error) {
 	}
 
 	for _, lineIn := range linesIn {
+		lineIn = strings.TrimSpace(lineIn)
 		lineOut := ExpirationLine{
 			Original: lineIn,
 		}
-		lineIn = strings.TrimSpace(lineIn)
 		words := strings.Split(lineIn, " ")
 
 		if len(words) != 3 && len(words) != 6 {
-			return Expiration{}, fmt.Errorf("syntax error on [expiration] line '%s': invalid length", lineIn)
+			return Expiration{}, fmt.Errorf("line '%s': invalid length", lineIn)
 		}
 
 		if words[0] != "keep" {
-			return Expiration{}, fmt.Errorf("syntax error on [expiration] line '%s': missing 'keep' keyword", lineIn)
+			return Expiration{}, fmt.Errorf("line '%s': missing 'keep' keyword", lineIn)
 		}
 
 		keepNum, err := strconv.Atoi(words[1])
 		if err != nil {
-			return Expiration{}, fmt.Errorf("syntax error on [expiration] line '%s': %s", lineIn, err)
+			return Expiration{}, fmt.Errorf("line '%s': %s", lineIn, err)
+		}
+		if keepNum < 1 {
+			return Expiration{}, fmt.Errorf("line '%s': invalid value %d", lineIn, keepNum)
 		}
 
 		switch words[2] {
@@ -87,17 +90,20 @@ func ParseExpiration(linesIn []string) (Expiration, error) {
 		case "year", "years":
 			lineOut.Keep = time.Duration(keepNum) * time.Hour * 24 * 365
 		default:
-			return Expiration{}, fmt.Errorf("syntax error on [expiration] line '%s': invalid 'keep' unit: %s", lineIn, words[2])
+			return Expiration{}, fmt.Errorf("line '%s': invalid 'keep' unit: %s", lineIn, words[2])
 		}
 
 		lineOut.EveryUnit = ExpirationUnitDefault
 		if len(words) == 6 {
 			if words[3] != "every" {
-				return Expiration{}, fmt.Errorf("syntax error on [expiration] line '%s': missing 'every' keyword", lineIn)
+				return Expiration{}, fmt.Errorf("line '%s': missing 'every' keyword", lineIn)
 			}
 			lineOut.Every, err = strconv.Atoi(words[4])
 			if err != nil {
-				return Expiration{}, fmt.Errorf("syntax error on [expiration] line '%s': %s", lineIn, err)
+				return Expiration{}, fmt.Errorf("line '%s': %s", lineIn, err)
+			}
+			if lineOut.Every < 1 {
+				return Expiration{}, fmt.Errorf("line '%s': invalid value %d", lineIn, lineOut.Every)
 			}
 			switch words[5] {
 			case "file", "files":
@@ -105,7 +111,7 @@ func ParseExpiration(linesIn []string) (Expiration, error) {
 			case "day", "days":
 				lineOut.EveryUnit = ExpirationUnitDay
 			default:
-				return Expiration{}, fmt.Errorf("syntax error on [expiration] line '%s': invalid 'every' unit: %s", lineIn, words[5])
+				return Expiration{}, fmt.Errorf("line '%s': invalid 'every' unit: %s", lineIn, words[5])
 			}
 
 		}

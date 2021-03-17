@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"reflect"
 
 	"github.com/OnitiFR/barry/cmd/barry/client"
@@ -16,12 +15,12 @@ import (
 
 // projectInfosCmd represents the "project infos" command
 var projectInfosCmd = &cobra.Command{
-	Use:   "infos [project]",
+	Use:   "infos <project>",
 	Short: "Get informations about project",
 
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		projectName := url.PathEscape(args[0])
+		projectName := args[0]
 		call := client.GlobalAPI.NewCall("GET", "/project/infos", map[string]string{
 			"project": projectName,
 		})

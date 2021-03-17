@@ -30,6 +30,10 @@ func AddRoutes(app *server.App) {
 		Handler: controllers.ActionProjectController,
 	})
 	app.AddRoute(&server.Route{
+		Route:   "POST /project/setting",
+		Handler: controllers.SettingProjectController,
+	})
+	app.AddRoute(&server.Route{
 		Route:   "GET /file/status/*",
 		Handler: controllers.FileStatusController,
 	})

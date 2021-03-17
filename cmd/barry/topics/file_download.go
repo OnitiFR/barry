@@ -44,7 +44,7 @@ var fileDownloadCmd = &cobra.Command{
 		fileDownloadVars.loop = true
 		for {
 			call.Do()
-			if fileDownloadVars.loop == false {
+			if !fileDownloadVars.loop {
 				break // exit the whole command
 			}
 			time.Sleep(3 * time.Second)

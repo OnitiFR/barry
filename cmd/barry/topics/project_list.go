@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -32,12 +31,12 @@ var projectListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		projectListFlagBasic, _ = cmd.Flags().GetBool("basic")
 		projectListFlagSize, _ = cmd.Flags().GetBool("size")
-		if projectListFlagBasic == true {
+		if projectListFlagBasic {
 			client.GetExitMessage().Disable()
 		}
 
 		if len(args) > 0 {
-			projectName := url.PathEscape(args[0])
+			projectName := args[0]
 			call := client.GlobalAPI.NewCall("GET", "/project/files", map[string]string{
 				"project": projectName,
 			})
@@ -123,9 +122,9 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 				maxExpire = line.ExpireLocal
 			}
 			expire := maxExpire.Format("2006-01-02 15:04")
-			if maxExpire.Sub(time.Now()) < time.Hour*24 {
+			if time.Until(maxExpire) < time.Hour*24 {
 				expire = red(expire) // will expire in less than one week
-			} else if maxExpire.Sub(time.Now()) < time.Hour*24*7 {
+			} else if time.Until(maxExpire) < time.Hour*24*7 {
 				expire = yellow(expire)
 			}
 			if line.ExpiredLocal {
