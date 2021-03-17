@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -105,7 +106,7 @@ func (s *Swift) connect() error {
 		Region:   s.Config.Swift.Region,
 	}
 
-	err := s.Conn.Authenticate()
+	err := s.Conn.Authenticate(context.Background())
 	if err != nil {
 		return err
 	}
@@ -114,13 +115,14 @@ func (s *Swift) connect() error {
 
 // CheckContainer will returnb nil if container and container_segments exists
 func (s *Swift) CheckContainer(name string) error {
-	_, _, err := s.Conn.Container(name)
+	ctx := context.Background()
+	_, _, err := s.Conn.Container(ctx, name)
 	if err != nil {
 		return fmt.Errorf("container '%s' does not exists", name)
 	}
 
 	segmentsContainer := name + "_segments"
-	_, _, err = s.Conn.Container(segmentsContainer)
+	_, _, err = s.Conn.Container(ctx, segmentsContainer)
 	if err != nil {
 		return fmt.Errorf("you must create container '%s' manually, a different pricing may be used if created via the API with default policy", segmentsContainer)
 	}
@@ -143,7 +145,7 @@ func (s *Swift) Upload(file *File) error {
 	// expireDuration := file.ExpireRemote.Sub(time.Now())
 	// deleteAfterSeconds := int(expireDuration / time.Second)
 
-	dest, err := s.Conn.DynamicLargeObjectCreate(&swift.LargeObjectOpts{
+	dest, err := s.Conn.DynamicLargeObjectCreate(context.Background(), &swift.LargeObjectOpts{
 		Container:  file.Container,
 		ObjectName: file.Path,
 		ChunkSize:  int64(s.Config.Swift.ChunckSize),
@@ -165,7 +167,7 @@ func (s *Swift) Upload(file *File) error {
 
 // Delete a File
 func (s *Swift) Delete(file *File) error {
-	err := s.Conn.DynamicLargeObjectDelete(file.Container, file.Path)
+	err := s.Conn.DynamicLargeObjectDelete(context.Background(), file.Container, file.Path)
 	if err != nil {
 		return err
 	}
@@ -176,7 +178,8 @@ func (s *Swift) Delete(file *File) error {
 // - state (sealed, unsealing, unsealed)
 // - delay in seconds (0 meaning that is file is ready to be downloaded)
 func (s *Swift) GetObjetAvailability(container string, path string) (string, time.Duration, error) {
-	_, headers, err := s.Conn.Object(container, path)
+	ctx := context.Background()
+	_, headers, err := s.Conn.Object(ctx, container, path)
 	if err != nil {
 		return "", 0, err
 	}
@@ -185,11 +188,11 @@ func (s *Swift) GetObjetAvailability(container string, path string) (string, tim
 	if !stateExists {
 		// let's check that all chunks are available, with some providers
 		// it can take a few seconds
-		file, headers, err := s.Conn.ObjectOpen(container, path, false, nil)
+		file, headers, err := s.Conn.ObjectOpen(ctx, container, path, false, nil)
 		if err != nil {
 			return "", 0, err
 		}
-		size, err := file.Length()
+		size, err := file.Length(ctx)
 		if err != nil {
 			return "", 0, err
 		}
@@ -225,7 +228,7 @@ func (s *Swift) GetObjetAvailability(container string, path string) (string, tim
 // Unseal a "cold" file, return availability ETA
 func (s *Swift) Unseal(container string, path string) (time.Duration, error) {
 	// fire "unseal" action or open the file if available
-	file, _, err := s.Conn.ObjectOpen(container, path, false, nil)
+	file, _, err := s.Conn.ObjectOpen(context.Background(), container, path, false, nil)
 
 	if err == nil {
 		// was not sealed
@@ -271,7 +274,7 @@ func (s *Swift) ObjectOpen(container string, path string) (io.ReadCloser, error)
 		return nil, errors.New("file is not unsealed")
 	}
 
-	file, _, err := s.Conn.ObjectOpen(container, path, false, nil)
+	file, _, err := s.Conn.ObjectOpen(context.Background(), container, path, false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +284,7 @@ func (s *Swift) ObjectOpen(container string, path string) (io.ReadCloser, error)
 
 // FilePutContent will create / overwrite a file with a content
 func (s *Swift) FilePutContent(container string, path string, content io.Reader) error {
-	dest, err := s.Conn.ObjectCreate(container, path, false, "", "", nil)
+	dest, err := s.Conn.ObjectCreate(context.Background(), container, path, false, "", "", nil)
 	if err != nil {
 		return err
 	}
