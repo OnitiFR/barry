@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/OnitiFR/barry/cmd/barry/client"
+	"github.com/OnitiFR/barry/common"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
@@ -55,6 +56,7 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolP("trace", "t", false, "also show server TRACE messages (debug)")
 	rootCmd.PersistentFlags().BoolP("time", "d", false, "show server timestamps on messages")
+	rootCmd.PersistentFlags().BoolP("version", "v", false, "show client version")
 
 	rootCmd.PersistentFlags().BoolP("get-config-filename", "", false, "get current config filename (useful for completion)")
 	rootCmd.PersistentFlags().MarkHidden("get-config-filename")
@@ -100,8 +102,14 @@ Note: you can also use environment variables (TRACE, TIME).
 	)
 
 	setCompletion()
+
 	if rootCmd.PersistentFlags().Lookup("get-config-filename").Changed {
 		fmt.Println(cfgFile)
+		os.Exit(0)
+	}
+
+	if rootCmd.PersistentFlags().Lookup("version").Changed {
+		fmt.Println(common.ClientVersion)
 		os.Exit(0)
 	}
 }

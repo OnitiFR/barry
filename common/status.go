@@ -4,6 +4,7 @@ import "time"
 
 // APIStatus describes server status
 type APIStatus struct {
+	Version       string
 	StartTime     time.Time
 	ProjectCount  int
 	FileCount     int

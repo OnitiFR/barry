@@ -361,6 +361,7 @@ func (app *App) Status() (*common.APIStatus, error) {
 		return nil, err
 	}
 
+	ret.Version = common.ServerVersion
 	ret.StartTime = app.StartTime
 	ret.ProjectCount = dbStats.ProjectCount
 	ret.FileCount = dbStats.FileCount
