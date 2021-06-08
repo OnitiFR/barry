@@ -145,11 +145,14 @@ func (s *Swift) Upload(file *File) error {
 	// expireDuration := file.ExpireRemote.Sub(time.Now())
 	// deleteAfterSeconds := int(expireDuration / time.Second)
 
+	// NoBuffer kills throughput (down to a few KB/s) and a CopyBuffer()
+	// make things very unstable with OVH. Back to memory-hungry-mode.
+
 	dest, err := s.Conn.DynamicLargeObjectCreate(context.Background(), &swift.LargeObjectOpts{
 		Container:  file.Container,
 		ObjectName: file.Path,
 		ChunkSize:  int64(s.Config.Swift.ChunckSize),
-		NoBuffer:   true,
+		// NoBuffer:   true,
 		// Headers: swift.Headers{
 		// 	"X-Delete-After": strconv.Itoa(deleteAfterSeconds),
 		// },
