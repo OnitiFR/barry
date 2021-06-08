@@ -14,11 +14,11 @@ import (
 	"strings"
 
 	"github.com/OnitiFR/barry/common"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/c2h5oh/datasize"
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
-	"github.com/schollz/progressbar"
+	"github.com/schollz/progressbar/v3"
 )
 
 // API describes the basic elements to call the API
@@ -172,7 +172,7 @@ func (call *APICall) Do() {
 			green := color.New(color.FgHiGreen).SprintFunc()
 			yellow := color.New(color.FgHiYellow).SprintFunc()
 			msg := fmt.Sprintf("According to the server, a client update is available: %s → %s\n", yellow(common.ClientVersion), green(latestClientVersionKnownByServer))
-			msg = msg + fmt.Sprintf("Update:\n    go get -u github.com/OnitiFR/barry/cmd/barry\n")
+			msg = msg + "Update:\n    go get -u github.com/OnitiFR/barry/cmd/barry\n"
 			GetExitMessage().Message = msg
 		}
 	}
