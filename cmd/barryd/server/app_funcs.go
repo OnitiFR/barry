@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ncw/swift"
+	"github.com/ncw/swift/v2"
 )
 
 // This file hosts all App "callbacks", the core logic of barryd

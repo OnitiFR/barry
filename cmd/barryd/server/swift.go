@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/c2h5oh/datasize"
-	"github.com/ncw/swift"
+	"github.com/ncw/swift/v2"
 )
 
 // Possible object availability
@@ -149,6 +149,7 @@ func (s *Swift) Upload(file *File) error {
 		Container:  file.Container,
 		ObjectName: file.Path,
 		ChunkSize:  int64(s.Config.Swift.ChunckSize),
+		// NoBuffer:   true,
 		// Headers: swift.Headers{
 		// 	"X-Delete-After": strconv.Itoa(deleteAfterSeconds),
 		// },
