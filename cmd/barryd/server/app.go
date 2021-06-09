@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/OnitiFR/barry/common"
@@ -31,6 +32,7 @@ type App struct {
 	MuxAPI      *http.ServeMux
 
 	routesAPI map[string][]*Route
+	queueSize int32
 }
 
 // Database filenames
@@ -240,7 +242,9 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 	upload := NewUpload(projectName, file)
 
 	// send to upload worker, and wait
+	atomic.AddInt32(&app.queueSize, 1)
 	app.Uploader.Channel <- upload
+	atomic.AddInt32(&app.queueSize, -1)
 	err := <-upload.Result
 
 	if err != nil {
@@ -368,7 +372,7 @@ func (app *App) Status() (*common.APIStatus, error) {
 	ret.TotalFileSize = dbStats.TotalSize
 	ret.TotalFileCost = dbStats.TotalCost
 	ret.Workers = app.Uploader.Status
-	ret.QueueSize = len(app.Uploader.Channel)
+	ret.QueueSize = int(atomic.LoadInt32(&app.queueSize))
 
 	return &ret, nil
 }

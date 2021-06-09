@@ -33,7 +33,7 @@ type Uploader struct {
 func NewUploader(numWorkers int, swift *Swift, log *Log) *Uploader {
 	return &Uploader{
 		NumWorkers: numWorkers,
-		Channel:    make(chan *Upload, numWorkers),
+		Channel:    make(chan *Upload),
 		Swift:      swift,
 		Log:        log,
 		Status:     make([]string, numWorkers),
