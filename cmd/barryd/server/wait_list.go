@@ -161,3 +161,21 @@ func (wl *WaitList) RemoveFile(projectName string, fileName string) error {
 
 	return nil
 }
+
+// QueueSize return the number of files in FileStatusQueued status
+func (wl *WaitList) QueueSize() int {
+	wl.mutex.Lock()
+	defer wl.mutex.Unlock()
+
+	var total int
+
+	for _, project := range wl.projects {
+		for _, file := range project.Files {
+			if file.Status == FileStatusQueued {
+				total++
+			}
+		}
+		fmt.Printf("\n")
+	}
+	return total
+}

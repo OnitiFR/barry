@@ -75,7 +75,7 @@ func (up *Uploader) worker(id int) {
 	upload.Tries++
 	upload.LastTry = time.Now()
 
-	up.Status[id-1] = fmt.Sprintf("uploading %s", upload.File.Filename)
+	up.Status[id-1] = fmt.Sprintf("uploading %s (%s)", upload.File.Filename, upload.File.Container)
 	up.Log.Infof(upload.File.ProjectName(), "worker %d: uploading %s", id, upload.File.Filename)
 	err = up.Swift.Upload(upload.File)
 	if err != nil {
