@@ -1,4 +1,5 @@
 ## TODO
+- update cobra to next release when available (1.1.3 is too old, no auto-completion)
 - commands
     - project delete (with all content?)
     - file info

@@ -15,5 +15,5 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/schollz/progressbar v1.0.0
 	github.com/schollz/progressbar/v3 v3.8.1 // indirect
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.1.3-0.20210510231933-4590150168e9
 )
