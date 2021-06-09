@@ -368,7 +368,7 @@ func (app *App) Status() (*common.APIStatus, error) {
 	ret.TotalFileSize = dbStats.TotalSize
 	ret.TotalFileCost = dbStats.TotalCost
 	ret.Workers = app.Uploader.Status
-	ret.QueueSize = app.WaitList.QueueSize()
+	ret.QueueSize = len(app.Uploader.Channel)
 
 	return &ret, nil
 }
