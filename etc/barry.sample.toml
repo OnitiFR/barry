@@ -42,8 +42,8 @@ local = [
 ]
 remote = [
     "keep 30 days",
-    "keep 90 days every 7 file",
-#    "keep 1 year every 90 day",
+    "keep 90 days every 7 files",
+#    "keep 1 year every 90 days",
 ]
 
 

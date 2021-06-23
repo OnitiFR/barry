@@ -60,7 +60,7 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 		NumUploaders:     2,
 		Expiration: &tomlExpiration{
 			Local:  []string{"keep 30 days"},
-			Remote: []string{"keep 30 days", "keep 90 days every 7 file"},
+			Remote: []string{"keep 30 days", "keep 90 days every 7 files"},
 		},
 		Swift: &tomlSwiftConfig{
 			Domain:    "Default",
