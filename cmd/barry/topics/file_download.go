@@ -52,7 +52,7 @@ var fileDownloadCmd = &cobra.Command{
 	},
 }
 
-func newSpinner(subject string) {
+func newDownloadSpinner(subject string) {
 	if !isatty.IsTerminal(os.Stdout.Fd()) {
 		return
 	}
@@ -83,7 +83,7 @@ func fileDownloadStatusCB(reader io.Reader, headers http.Header) {
 	}
 
 	if fileDownloadVars.previousStatus != data.Status {
-		newSpinner(data.Status)
+		newDownloadSpinner(data.Status)
 		fileDownloadVars.previousStatus = data.Status
 	}
 	end := time.Now().Add(data.ETA).Format("2006-01-02 15:04")

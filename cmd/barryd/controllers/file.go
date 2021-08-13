@@ -42,6 +42,39 @@ func FileStatusController(req *server.Request) {
 	}
 }
 
+// getLocalPath will return the local path of an available file
+func getLocalPath(fullPath string, app *server.App) (string, error) {
+	projectName := filepath.Dir(fullPath)
+	fileName := filepath.Base(fullPath)
+
+	file := app.ProjectDB.FindFile(projectName, fileName)
+	if file == nil {
+		return "", fmt.Errorf("error with file '%s' in project '%s'", fileName, projectName)
+	}
+
+	availability, err := app.MakeFileAvailable(file)
+	if err != nil {
+		return "", err
+	}
+
+	if availability.Status != common.APIFileStatusAvailable {
+		return "", fmt.Errorf("file '%s' in project '%s' is not available", fileName, projectName)
+	}
+
+	path := ""
+	if !file.ExpiredLocal {
+		path, _ = app.LocalStoragePath(server.FileStorageName, file.Path)
+	} else if file.RetrievedPath != "" {
+		path = file.RetrievedPath
+	}
+
+	if path == "" {
+		return "", fmt.Errorf("can't file local path for file '%s' in project '%s'", fileName, projectName)
+	}
+
+	return path, nil
+}
+
 // FileDownloadController return the file stream
 func FileDownloadController(req *server.Request) {
 	req.Response.Header().Set("Content-Type", "application/octet-stream")
@@ -51,43 +84,33 @@ func FileDownloadController(req *server.Request) {
 	projectName := filepath.Dir(fullPath)
 	fileName := filepath.Base(fullPath)
 
-	file := req.App.ProjectDB.FindFile(projectName, fileName)
-	if file == nil {
-		msg := fmt.Sprintf("error with file '%s' in project '%s'", fileName, projectName)
-		req.App.Log.Error(projectName, msg)
-		http.Error(req.Response, msg, 500)
-		return
-	}
-
-	availability, err := req.App.MakeFileAvailable(file)
+	path, err := getLocalPath(fullPath, req.App)
 	if err != nil {
 		req.App.Log.Error(projectName, err.Error())
 		http.Error(req.Response, err.Error(), 500)
-		return
-	}
-
-	if availability.Status != common.APIFileStatusAvailable {
-		msg := fmt.Sprintf("file '%s' in project '%s' is not available", fileName, projectName)
-		req.App.Log.Error(projectName, msg)
-		http.Error(req.Response, msg, 500)
-		return
-	}
-
-	path := ""
-	if !file.ExpiredLocal {
-		path, _ = req.App.LocalStoragePath(server.FileStorageName, file.Path)
-	} else if file.RetrievedPath != "" {
-		path = file.RetrievedPath
-	}
-
-	if path == "" {
-		msg := fmt.Sprintf("can't file local path for file '%s' in project '%s'", fileName, projectName)
-		req.App.Log.Error(projectName, msg)
-		http.Error(req.Response, msg, 500)
-		return
 	}
 
 	req.App.Log.Infof(projectName, "file '%s' (%s) is downloaded by key '%s'", fileName, projectName, req.APIKey.Comment)
 
 	http.ServeFile(req.Response, req.HTTP, path)
+}
+
+// FilePushController will push the (available) file to a remote destination
+func FilePushController(req *server.Request) {
+	fullPath := req.HTTP.FormValue("file")
+	destination := req.HTTP.FormValue("destination")
+
+	// lookup the destination
+
+	projectName := filepath.Dir(fullPath)
+	fileName := filepath.Base(fullPath)
+
+	path, err := getLocalPath(fullPath, req.App)
+	if err != nil {
+		req.App.Log.Error(projectName, err.Error())
+		http.Error(req.Response, err.Error(), 500)
+	}
+
+	fmt.Println(path)
+	req.App.Log.Infof(projectName, "file '%s' (%s) is pushed to '%s' by key '%s'", fileName, projectName, destination, req.APIKey.Comment)
 }

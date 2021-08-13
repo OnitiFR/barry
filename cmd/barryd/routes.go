@@ -34,12 +34,16 @@ func AddRoutes(app *server.App) {
 		Handler: controllers.SettingProjectController,
 	})
 	app.AddRoute(&server.Route{
-		Route:   "GET /file/status/*",
+		Route:   "GET /file/status",
 		Handler: controllers.FileStatusController,
 	})
 	app.AddRoute(&server.Route{
-		Route:   "GET /file/download/*",
+		Route:   "GET /file/download",
 		Handler: controllers.FileDownloadController,
+	})
+	app.AddRoute(&server.Route{
+		Route:   "POST /file/push",
+		Handler: controllers.FilePushController,
 	})
 	app.AddRoute(&server.Route{
 		Route:   "GET /key",
