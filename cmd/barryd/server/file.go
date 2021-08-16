@@ -33,6 +33,7 @@ type File struct {
 	RetrievedPath   string
 	RetrievedDate   time.Time
 	retriever       *Retriever
+	pushers         map[string]Pusher // one push per destination
 }
 
 // FileMap is a map of File
@@ -41,4 +42,16 @@ type FileMap map[string]*File
 // ProjectName is a small helper to return the dir/project name of the file
 func (file *File) ProjectName() string {
 	return filepath.Dir(file.Path)
+}
+
+// CheckInit will init all fields of the *File fileds that needs it
+func (file *File) checkInit() {
+	if file.pushers == nil {
+		file.pushers = make(map[string]Pusher)
+	}
+}
+
+func (file *File) GetPusher(destination string) Pusher {
+	file.checkInit()
+	return file.pushers[destination]
 }

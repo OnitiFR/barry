@@ -2,7 +2,9 @@ package common
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -73,4 +75,14 @@ func InterfaceValueToString(iv interface{}, format string) string {
 		return strings.Join(civ, ", ")
 	}
 	return "INVALID_TYPE"
+}
+
+// CleanURL by parsing it
+func CleanURL(urlIn string) (string, error) {
+	urlObj, err := url.Parse(urlIn)
+	if err != nil {
+		return urlIn, err
+	}
+	urlObj.Path = path.Clean(urlObj.Path)
+	return urlObj.String(), nil
 }

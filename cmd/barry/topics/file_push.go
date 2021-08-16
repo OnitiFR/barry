@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/OnitiFR/barry/cmd/barry/client"
@@ -80,7 +79,7 @@ func filePushStatusCB(reader io.Reader, headers http.Header) {
 	}
 
 	if data.Status == common.APIFileStatusAvailable {
-		filePushDo()
+		pushDo()
 		filePushVars.loop = false
 		return
 	}
@@ -98,19 +97,60 @@ func filePushStatusCB(reader io.Reader, headers http.Header) {
 	}
 }
 
-func filePushDo() {
-	if filePushVars.spinner != nil {
-		filePushVars.spinner.Stop()
-		fmt.Println()
-	}
+func pushDo() {
+	// TODO: check spinner display with real retrieve + push
 
-	// TODO: use a get to allow polling of the upload to destination? (so we get an ETA)
-	call := client.GlobalAPI.NewCall("POST", "/file/push", map[string]string{
+	call := client.GlobalAPI.NewCall("GET", "/file/push/status", map[string]string{
 		"file":        filePushVars.path,
 		"destination": filePushVars.destination,
 	})
-	call.DestFilePath = filepath.Base(filePushVars.filename)
-	call.Do()
+	call.JSONCallback = pushStatusCB
+	filePushVars.loop = true
+	for {
+		call.Do()
+		if !filePushVars.loop {
+			break // exit the whole command
+		}
+		time.Sleep(3 * time.Second)
+	}
+}
+
+func pushStatusCB(reader io.Reader, headers http.Header) {
+	var data common.APIPushStatus
+	dec := json.NewDecoder(reader)
+	err := dec.Decode(&data)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	if data.Status != common.APIPushStatusPushing {
+		filePushVars.loop = false
+		if filePushVars.spinner != nil {
+			filePushVars.spinner.Stop()
+			fmt.Println()
+		}
+		switch data.Status {
+		case common.APIPushStatusError:
+			log.Fatal(data.Error)
+		case common.APIPushStatusSuccess:
+			fmt.Printf("File successfully pushed to '%s'\n", filePushVars.destination)
+		default:
+			log.Fatalf("unknown status '%s'", data.Status)
+		}
+		return
+	}
+
+	if filePushVars.previousStatus != data.Status {
+		newPushSpinner(data.Status)
+		filePushVars.previousStatus = data.Status
+	}
+	end := time.Now().Add(data.ETA).Format("2006-01-02 15:04")
+	msg := fmt.Sprintf("%s: %s (%s)", data.Status, data.ETA, end)
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		filePushVars.spinner.Suffix = " " + msg
+	} else {
+		fmt.Println(msg)
+	}
 }
 
 func init() {
