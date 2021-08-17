@@ -37,7 +37,6 @@ var filePushCmd = &cobra.Command{
 		filePushVars.filename = args[1]
 		filePushVars.path = args[0] + "/" + args[1]
 		filePushVars.destination = args[2]
-		// TODO: check destination BEFORE anything else :)
 		call := client.GlobalAPI.NewCall("GET", "/file/status", map[string]string{
 			"file": filePushVars.path,
 		})
@@ -101,8 +100,6 @@ func filePushStatusCB(reader io.Reader, headers http.Header) {
 }
 
 func pushDo() {
-	// TODO: check spinner display with real retrieve + push
-
 	call := client.GlobalAPI.NewCall("GET", "/file/push/status", map[string]string{
 		"file":        filePushVars.path,
 		"destination": filePushVars.destination,

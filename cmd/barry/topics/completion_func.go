@@ -25,9 +25,18 @@ __internal_list_files() {
     fi
 }
 
+__internal_list_destinations() {
+    local barry_output out
+	__barry_get_config
+	if barry_output=$(barry --config $__barry_config get destinations --basic 2>/dev/null); then
+        out=($(echo "${barry_output}"))
+        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+    fi
+}
+
 __internal_project_set() {
 	local prev_prev_prev=${COMP_WORDS[COMP_CWORD-3]}
-    if [ "$prev" =  "set" ]; then
+    if [ "$prev" = "set" ]; then
         out=(backup_every local_expiration remote_expiration)
         COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
     elif [ "$prev_prev_prev" =  "set" ]; then
@@ -37,10 +46,22 @@ __internal_project_set() {
 
 __internal_file_download() {
 	local prev_prev=${COMP_WORDS[COMP_CWORD-2]}
-    if [ "$prev" =  "download" ]; then
+    if [ "$prev" = "download" ]; then
 		__internal_list_projects
     elif [ "$prev_prev" =  "download" ]; then
         __internal_list_files $prev
+    fi
+}
+
+__internal_file_push() {
+	local prev_prev=${COMP_WORDS[COMP_CWORD-2]}
+	local prev3=${COMP_WORDS[COMP_CWORD-3]}
+    if [ "$prev" = "push" ]; then
+		__internal_list_projects
+    elif [ "$prev_prev" =  "push" ]; then
+        __internal_list_files $prev
+    elif [ "$prev3" = "push" ]; then
+        __internal_list_destinations
     fi
 }
 
@@ -56,6 +77,10 @@ __barry_custom_func() {
             ;;
 		barry_file_download)
 			__internal_file_download
+            return
+            ;;
+		barry_file_push)
+			__internal_file_push
             return
             ;;
         *)

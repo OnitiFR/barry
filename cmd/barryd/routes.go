@@ -57,4 +57,8 @@ func AddRoutes(app *server.App) {
 		Route:   "GET /status",
 		Handler: controllers.GetStatusController,
 	})
+	app.AddRoute(&server.Route{
+		Route:   "GET /destination",
+		Handler: controllers.GetDestinationsController,
+	})
 }

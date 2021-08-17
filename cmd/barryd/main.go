@@ -19,7 +19,7 @@ var configRestore = flag.Bool("restore", false, "restore databases (emergency, w
 func main() {
 	flag.Parse()
 
-	if *configVersion == true {
+	if *configVersion {
 		fmt.Println(common.ServerVersion)
 		os.Exit(0)
 	}
