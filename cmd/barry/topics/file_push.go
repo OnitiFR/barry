@@ -1,8 +1,5 @@
 package topics
 
-// TODO: update github.com/briandowns/spinner since have an issue with FinalMSG
-// https://github.com/briandowns/spinner/issues/123
-
 import (
 	"encoding/json"
 	"fmt"
