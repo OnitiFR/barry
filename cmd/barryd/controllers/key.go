@@ -32,6 +32,7 @@ func ListKeysController(req *server.Request) {
 	if err != nil {
 		req.App.Log.Error(server.MsgGlob, err.Error())
 		http.Error(req.Response, err.Error(), 500)
+		return
 	}
 }
 

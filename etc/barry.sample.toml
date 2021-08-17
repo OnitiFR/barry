@@ -24,6 +24,7 @@ self_backup_container = "backup_hot"
 # Listen address of Barry API server (no IP = all interfaces)
 listen = ":8787"
 
+
 # Default file expiration settings, it's possible to customize this at project
 # level using the client.
 #
@@ -71,3 +72,13 @@ cost = "0.01 * size_GB * duration_months"
 [[container]]
 name = "backup_cold"
 cost = "(0.01 * size_GB) + (0.002 * size_GB * duration_months)"
+
+
+# Push destinations. Barry can push a file directly to a remote host (server
+# to server).
+# Currently, only the "mulch" type is supported. See "file push" command.
+[[push_destination]]
+name = "mulch"
+type = "mulch"
+url = "https://mulch.host:8686"
+key = "xxx"

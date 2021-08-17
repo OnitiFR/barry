@@ -1,5 +1,8 @@
 package topics
 
+// TODO: update github.com/briandowns/spinner since have an issue with FinalMSG
+// https://github.com/briandowns/spinner/issues/123
+
 import (
 	"encoding/json"
 	"fmt"
@@ -25,7 +28,7 @@ var filePushVars struct {
 	previousStatus string
 }
 
-// filePushCmd represents the file pusj command
+// filePushCmd represents the file push command
 var filePushCmd = &cobra.Command{
 	Use:   "push <project> <file> <destination>",
 	Short: "Push a file directly to a remote destination",

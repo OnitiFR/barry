@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -31,8 +32,16 @@ type PusherMulch struct {
 	mutex        sync.Mutex
 }
 
+// from mulch common/message.go file
+type mulchMessage struct {
+	Time    time.Time `json:"time"`
+	Type    string    `json:"type"`
+	Target  string    `json:"target"`
+	Message string    `json:"message"`
+}
+
 // NewPusherMulch create a new Pusher to mulch
-func NewPusherMulch(file *File, path string, config *PusherConfig) (Pusher, error) {
+func NewPusherMulch(file *File, path string, config *PusherConfig, log *Log) (Pusher, error) {
 	p := &PusherMulch{
 		startedAt: time.Now(),
 		file:      file,
@@ -118,8 +127,27 @@ func NewPusherMulch(file *File, path string, config *PusherConfig) (Pusher, erro
 			}
 			p.error(fmt.Errorf("mulch returned %d: %s", resp.StatusCode, body))
 		}
+
 		// parse all lines of mulch to get success or failure
-		p.error(nil)
+		var lastError error
+
+		dec := json.NewDecoder(resp.Body)
+		for {
+			var m mulchMessage
+			err := dec.Decode(&m)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				log.Errorf("unable to parse Mulch message: %s", err.Error())
+			}
+
+			if m.Type == "FAILURE" {
+				lastError = fmt.Errorf("mulch FAILURE: %s", m.Message)
+			}
+		}
+
+		p.error(lastError)
 	}()
 
 	return p, nil
@@ -149,8 +177,6 @@ func (p *PusherMulch) copy(bufferSize int64) error {
 		if n == 0 {
 			break
 		}
-
-		time.Sleep(250 * time.Millisecond)
 
 		if _, err := p.dest.Write(buf[:n]); err != nil {
 			return err

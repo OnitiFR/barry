@@ -21,7 +21,7 @@ func FileStatusController(req *server.Request) {
 
 	file := req.App.ProjectDB.FindFile(projectName, fileName)
 	if file == nil {
-		msg := fmt.Sprintf("error with file '%s' in project '%s'", fileName, projectName)
+		msg := fmt.Sprintf("can't find file '%s' in project '%s'", fileName, projectName)
 		req.App.Log.Error(projectName, msg)
 		http.Error(req.Response, msg, 500)
 		return
@@ -39,6 +39,7 @@ func FileStatusController(req *server.Request) {
 	if err != nil {
 		req.App.Log.Error(projectName, err.Error())
 		http.Error(req.Response, err.Error(), 500)
+		return
 	}
 }
 
@@ -49,7 +50,7 @@ func getLocalPath(fullPath string, app *server.App) (string, *server.File, error
 
 	file := app.ProjectDB.FindFile(projectName, fileName)
 	if file == nil {
-		return "", nil, fmt.Errorf("error with file '%s' in project '%s'", fileName, projectName)
+		return "", nil, fmt.Errorf("can't file '%s' in project '%s'", fileName, projectName)
 	}
 
 	availability, err := app.MakeFileAvailable(file)
@@ -88,6 +89,7 @@ func FileDownloadController(req *server.Request) {
 	if err != nil {
 		req.App.Log.Error(projectName, err.Error())
 		http.Error(req.Response, err.Error(), 500)
+		return
 	}
 
 	req.App.Log.Infof(projectName, "file '%s' (%s) is downloaded by key '%s'", fileName, projectName, req.APIKey.Comment)
@@ -103,16 +105,21 @@ func FilePushStatusController(req *server.Request) {
 
 	fullPath := req.HTTP.FormValue("file")
 	destination := req.HTTP.FormValue("destination")
-
-	// TODO: lookup the destination!
-
 	projectName := filepath.Dir(fullPath)
-	// fileName := filepath.Base(fullPath)
+
+	pusherConfig, exists := req.App.Config.Pushers[destination]
+	if !exists {
+		msg := fmt.Sprintf("push destination '%s' not found", destination)
+		req.App.Log.Error(projectName, msg)
+		http.Error(req.Response, msg, 404)
+		return
+	}
 
 	path, file, err := getLocalPath(fullPath, req.App)
 	if err != nil {
 		req.App.Log.Error(projectName, err.Error())
 		http.Error(req.Response, err.Error(), 500)
+		return
 	}
 
 	pusher := file.GetPusher(destination)
@@ -137,26 +144,29 @@ func FilePushStatusController(req *server.Request) {
 			Error:  errMsg,
 		}
 	} else {
+		req.App.Log.Infof(projectName, "file '%s' (%s) is pushed to '%s' by key '%s'", file.Filename, projectName, destination, req.APIKey.Comment)
+
 		retData.Status = common.APIPushStatusPushing
-		_, err = server.NewPusherMulch(file, path, &server.PusherConfig{
-			Type: server.PusherTypeMulch,
-			Name: "local",
-			URL:  "http://127.0.0.1:8686",
-			Key:  "5aFPOWVKw3ZGszIxPw8R5V8o0eWt9ywUsTPGLwUMPbAZKSThcWNp3vVcIY9Qi6ix",
-		})
+
+		switch pusherConfig.Type {
+		case server.PusherTypeMulch:
+			_, err = server.NewPusherMulch(file, path, pusherConfig, req.App.Log)
+		default:
+			err = fmt.Errorf("pusher type '%s' not implemented", pusherConfig.Type)
+		}
+
 		if err != nil {
 			req.App.Log.Error(projectName, err.Error())
 			http.Error(req.Response, err.Error(), 500)
+			return
 		}
 	}
-
-	// fmt.Println(path)
-	// req.App.Log.Infof(projectName, "file '%s' (%s) is pushed to '%s' by key '%s'", fileName, projectName, destination, req.APIKey.Comment)
 
 	enc := json.NewEncoder(req.Response)
 	err = enc.Encode(&retData)
 	if err != nil {
 		req.App.Log.Error(projectName, err.Error())
 		http.Error(req.Response, err.Error(), 500)
+		return
 	}
 }

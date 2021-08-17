@@ -113,6 +113,7 @@ func ListProjectController(req *server.Request) {
 	if err != nil {
 		req.App.Log.Error(project.Path, err.Error())
 		http.Error(req.Response, err.Error(), 500)
+		return
 	}
 }
 
@@ -168,6 +169,7 @@ func InfosProjectController(req *server.Request) {
 	if err != nil {
 		req.App.Log.Error(project.Path, err.Error())
 		http.Error(req.Response, err.Error(), 500)
+		return
 	}
 }
 
@@ -190,6 +192,7 @@ func ActionProjectController(req *server.Request) {
 		msg := fmt.Sprintf("unknown action '%s'", action)
 		req.App.Log.Error(project.Path, msg)
 		http.Error(req.Response, msg, 400)
+		return
 	}
 }
 
