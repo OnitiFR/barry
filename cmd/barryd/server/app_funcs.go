@@ -128,7 +128,8 @@ func (app *App) deleteRemote(file *File) {
 func (app *App) sendNoBackupAlert(projects []*Project) {
 	projectStrings := make([]string, 0)
 	for _, project := range projects {
-		projectStrings = append(projectStrings, fmt.Sprintf("%s (%s)", project.Path, project.BackupEvery))
+		diff := time.Since(project.ModTime()).Truncate(time.Second)
+		projectStrings = append(projectStrings, fmt.Sprintf("%s (need every %s, was %s go)", project.Path, project.BackupEvery, diff))
 	}
 
 	msg := fmt.Sprintf("missing backup for project(s) : %s", strings.Join(projectStrings, ", "))
