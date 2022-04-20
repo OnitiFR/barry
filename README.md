@@ -9,7 +9,10 @@ This is a work-in-progress, see the TODO file.
 ### Install (client only)
 
 Make sure Go is installed, then install/update Barry:
-`go get -u github.com/OnitiFR/barry/cmd/barry`
+```sh
+go install github.com/OnitiFR/barry/cmd/barry@latest (Go 1.16+)
+go get -u github.com/OnitiFR/barry/cmd/barry (Go 1.15-)
+```
 
 Then, launch `barry` and see the given `.barry.toml` sample content.
 
