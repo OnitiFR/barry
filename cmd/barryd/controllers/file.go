@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/OnitiFR/barry/cmd/barryd/server"
 	"github.com/OnitiFR/barry/common"
@@ -122,6 +124,19 @@ func FilePushStatusController(req *server.Request) {
 		return
 	}
 
+	expireStr := req.HTTP.FormValue("expire")
+	expire := time.Duration(0)
+	if expireStr != "" {
+		seconds, err := strconv.Atoi(expireStr)
+		if err != nil {
+			msg := fmt.Sprintf("invalid expire value '%s'", expireStr)
+			req.App.Log.Error(projectName, msg)
+			http.Error(req.Response, msg, 500)
+			return
+		}
+		expire = time.Duration(seconds) * time.Second
+	}
+
 	pusher := file.GetPusher(destination)
 	if pusher != nil {
 		finished := pusher.IsFinished()
@@ -150,7 +165,7 @@ func FilePushStatusController(req *server.Request) {
 
 		switch pusherConfig.Type {
 		case server.PusherTypeMulch:
-			_, err = server.NewPusherMulch(file, path, pusherConfig, req.App.Log)
+			_, err = server.NewPusherMulch(file, path, expire, pusherConfig, req.App.Log)
 		default:
 			err = fmt.Errorf("pusher type '%s' not implemented", pusherConfig.Type)
 		}

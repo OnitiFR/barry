@@ -41,7 +41,7 @@ type mulchMessage struct {
 }
 
 // NewPusherMulch create a new Pusher to mulch
-func NewPusherMulch(file *File, path string, config *PusherConfig, log *Log) (Pusher, error) {
+func NewPusherMulch(file *File, path string, expire time.Duration, config *PusherConfig, log *Log) (Pusher, error) {
 	p := &PusherMulch{
 		startedAt: time.Now(),
 		file:      file,
@@ -109,6 +109,8 @@ func NewPusherMulch(file *File, path string, config *PusherConfig, log *Log) (Pu
 
 	req.Header.Set("Mulch-Key", config.Key)
 	req.Header.Set("Mulch-Protocol", strconv.Itoa(1))
+
+	req.Header.Set("expire", strconv.Itoa(int(expire.Seconds())))
 
 	// goroutine: do and fetch the result
 	go func() {

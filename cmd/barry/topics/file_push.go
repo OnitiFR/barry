@@ -23,6 +23,7 @@ var filePushVars struct {
 	destination    string
 	spinner        *spinner.Spinner
 	previousStatus string
+	expireDuration time.Duration
 }
 
 // filePushCmd represents the file push command
@@ -31,9 +32,17 @@ var filePushCmd = &cobra.Command{
 	Short: "Push a file directly to a remote destination",
 	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
+		expire, _ := cmd.Flags().GetString("expire")
+		expireDuration, err := client.ParseExpiration(expire)
+		if err != nil {
+			log.Fatalf("unable to parse expiration: %s", err)
+		}
+
 		filePushVars.filename = args[1]
 		filePushVars.path = args[0] + "/" + args[1]
 		filePushVars.destination = args[2]
+		filePushVars.expireDuration = expireDuration
+
 		call := client.GlobalAPI.NewCall("GET", "/file/status", map[string]string{
 			"file": filePushVars.path,
 		})
@@ -100,6 +109,7 @@ func pushDo() {
 	call := client.GlobalAPI.NewCall("GET", "/file/push/status", map[string]string{
 		"file":        filePushVars.path,
 		"destination": filePushVars.destination,
+		"expire":      client.DurationAsSecondsString(filePushVars.expireDuration),
 	})
 	call.JSONCallback = pushStatusCB
 	filePushVars.loop = true
@@ -152,4 +162,5 @@ func pushStatusCB(reader io.Reader, headers http.Header) {
 
 func init() {
 	fileCmd.AddCommand(filePushCmd)
+	filePushCmd.Flags().StringP("expire", "e", "", "expiration delay (ex: 2h, 10d, 1y)")
 }
