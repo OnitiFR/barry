@@ -75,6 +75,13 @@ func NewPusherMulch(file *File, path string, expire time.Duration, config *Pushe
 
 		var err error
 
+		// set expire form field
+		err = multipartWriter.WriteField("expire", strconv.Itoa(int(expire.Seconds())))
+		if err != nil {
+			p.error(err)
+			return
+		}
+
 		p.dest, err = multipartWriter.CreateFormFile("file", file.Filename)
 		if err != nil {
 			p.error(err)
@@ -109,8 +116,6 @@ func NewPusherMulch(file *File, path string, expire time.Duration, config *Pushe
 
 	req.Header.Set("Mulch-Key", config.Key)
 	req.Header.Set("Mulch-Protocol", strconv.Itoa(1))
-
-	req.Header.Set("expire", strconv.Itoa(int(expire.Seconds())))
 
 	// goroutine: do and fetch the result
 	go func() {
