@@ -20,9 +20,14 @@ Note: the client requires at least Go 1.12
 ### Install (client + server)
 
 Make sure Go is installed, then install/update Barry:
-`go get -u github.com/OnitiFR/barry/cmd/...`
+```sh
+go install github.com/OnitiFR/barry/cmd/...@latest (Go 1.16+)
+go get -u github.com/OnitiFR/barry/cmd/... (Go 1.15-)
+```
 
-Copy and modify `install/barryd.service` to your `/etc/systemd/system`, 
+Then, launch `barry-server` and see the given `.barry.toml` sample content.
+
+Copy and modify `install/barryd.service` to your `/etc/systemd/system`,
 then reload systemd with `systemctl daemon-reload`.
 
 You can configure alerts using samples in `etc/alerts` directory. Install `jq` utility
