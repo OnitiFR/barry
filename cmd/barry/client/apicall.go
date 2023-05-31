@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -39,6 +40,7 @@ type APICall struct {
 	DestFilePath  string
 	DestStream    *os.File
 	PrintLogTopic bool
+	files         map[string]string
 }
 
 // NewAPI create a new API instance
@@ -58,6 +60,7 @@ func (api *API) NewCall(method string, path string, args map[string]string) *API
 		Method: method,
 		Path:   path,
 		Args:   args,
+		files:  make(map[string]string),
 	}
 }
 
@@ -68,6 +71,19 @@ func cleanURL(urlIn string) (string, error) {
 	}
 	urlObj.Path = path.Clean(urlObj.Path)
 	return urlObj.String(), nil
+}
+
+// AddFile to the request (upload)
+func (call *APICall) AddFile(fieldname string, filename string) error {
+	// test readability
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	call.files[fieldname] = filename
+	return nil
 }
 
 // Do the actual API call
@@ -91,18 +107,66 @@ func (call *APICall) Do() {
 
 	switch method {
 	case "GET", "DELETE":
+		if len(call.files) > 0 {
+			log.Fatal("file upload is not supported using this method")
+		}
 		finalURL := apiURL + "?" + data.Encode()
 		req, err = http.NewRequest(method, finalURL, nil)
 		if err != nil {
 			log.Fatal(removeAPIKeyFromString(err.Error(), call.api.APIKey))
 		}
 	case "POST", "PUT":
-		// simple URL encoded form
-		req, err = http.NewRequest(method, apiURL, bytes.NewBufferString(data.Encode()))
-		if err != nil {
-			log.Fatal(err)
+		if len(call.files) == 0 {
+			// simple URL encoded form
+			req, err = http.NewRequest(method, apiURL, bytes.NewBufferString(data.Encode()))
+			if err != nil {
+				log.Fatal(err)
+			}
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		} else {
+			// multipart body, with file upload
+
+			pipeReader, pipeWriter := io.Pipe()
+			multipartWriter := multipart.NewWriter(pipeWriter)
+
+			go func() {
+				defer pipeWriter.Close()
+
+				for fieldname, value := range data {
+					errM := multipartWriter.WriteField(fieldname, value[0])
+					if errM != nil {
+						log.Fatal(errM)
+					}
+				}
+
+				// range call.files
+				for field, filename := range call.files {
+					ff, errM := multipartWriter.CreateFormFile(field, path.Base(filename))
+					if errM != nil {
+						log.Fatal(errM)
+					}
+					file, errO := os.Open(filename)
+					if errO != nil {
+						log.Fatal(errO)
+					}
+					defer file.Close()
+					if _, err = io.Copy(ff, file); err != nil {
+						log.Fatal(err)
+					}
+				}
+
+				err = multipartWriter.Close()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}()
+			req, err = http.NewRequest(method, apiURL, pipeReader)
+			if err != nil {
+				return
+			}
+			req.Header.Set("Content-Type", multipartWriter.FormDataContentType())
+
 		}
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	default:
 		log.Fatalf("apicall does not support '%s' yet", method)
 	}

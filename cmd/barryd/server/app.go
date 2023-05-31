@@ -233,7 +233,7 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 			bestContainer = container.Name
 		}
 	}
-	app.Log.Tracef(projectName, "using container '%s' for file '%s", bestContainer, file.Filename)
+	app.Log.Tracef(projectName, "using container '%s' for file '%s'", bestContainer, file.Filename)
 
 	file.Status = FileStatusUploading
 	file.Cost = minimumCost

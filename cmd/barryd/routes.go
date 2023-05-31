@@ -46,6 +46,10 @@ func AddRoutes(app *server.App) {
 		Handler: controllers.FilePushStatusController,
 	})
 	app.AddRoute(&server.Route{
+		Route:   "POST /file/upload",
+		Handler: controllers.FileUploadController,
+	})
+	app.AddRoute(&server.Route{
 		Route:   "GET /key",
 		Handler: controllers.ListKeysController,
 	})
