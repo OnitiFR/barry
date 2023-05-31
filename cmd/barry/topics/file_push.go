@@ -30,7 +30,7 @@ var filePushVars struct {
 var filePushCmd = &cobra.Command{
 	Use:   "push <project> <file> <destination>",
 	Short: "Push a project file directly to a remote destination",
-	Long:  `Push any file of any project directly to a remote destination (destination example: a mulch server).`,
+	Long:  `Push any file of any project directly to a remote destination (destination example: a mulch server) without the need for a local copy.`,
 	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
 		expire, _ := cmd.Flags().GetString("expire")
