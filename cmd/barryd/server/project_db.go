@@ -13,16 +13,17 @@ import (
 
 // ProjectDatabase is a Project database holder
 type ProjectDatabase struct {
-	filename          string
-	localStoragePath  string
-	projects          ProjectMap
-	defaultExpiration *ExpirationConfig
-	log               *Log
-	mutex             sync.Mutex
-	alertSender       *AlertSender
-	deleteLocalFunc   ProjectDBDeleteLocalFunc
-	deleteRemoteFunc  ProjectDBDeleteRemoteFunc
-	noBackupAlertFunc ProjectDBNoBackupAlertFunc
+	filename                  string
+	localStoragePath          string
+	projects                  ProjectMap
+	defaultExpiration         *ExpirationConfig
+	remoteExpirationOverrides map[string]ExpirationResult
+	log                       *Log
+	mutex                     sync.Mutex
+	alertSender               *AlertSender
+	deleteLocalFunc           ProjectDBDeleteLocalFunc
+	deleteRemoteFunc          ProjectDBDeleteRemoteFunc
+	noBackupAlertFunc         ProjectDBNoBackupAlertFunc
 }
 
 // ProjectDBStats hosts stats about the projects and files
@@ -54,15 +55,16 @@ func NewProjectDatabase(
 	log *Log,
 ) (*ProjectDatabase, error) {
 	db := &ProjectDatabase{
-		filename:          filename,
-		localStoragePath:  localStoragePath,
-		projects:          make(ProjectMap),
-		defaultExpiration: defaultExpiration,
-		deleteLocalFunc:   deleteLocalFunc,
-		deleteRemoteFunc:  deleteRemoteFunc,
-		noBackupAlertFunc: noBackupAlertFunc,
-		log:               log,
-		alertSender:       alertSender,
+		filename:                  filename,
+		localStoragePath:          localStoragePath,
+		projects:                  make(ProjectMap),
+		defaultExpiration:         defaultExpiration,
+		remoteExpirationOverrides: make(map[string]ExpirationResult),
+		deleteLocalFunc:           deleteLocalFunc,
+		deleteRemoteFunc:          deleteRemoteFunc,
+		noBackupAlertFunc:         noBackupAlertFunc,
+		log:                       log,
+		alertSender:               alertSender,
 	}
 	// if the file exists, load it
 	if _, err := os.Stat(db.filename); err == nil {
@@ -310,12 +312,21 @@ func (db *ProjectDatabase) AddFile(projectName string, file *File) error {
 }
 
 // GetProjectNextExpiration return next (= for next file) expiration values
-func (db *ProjectDatabase) GetProjectNextExpiration(project *Project, modTime time.Time) (ExpirationResult, ExpirationResult, error) {
+func (db *ProjectDatabase) GetProjectNextExpiration(project *Project, file *File) (ExpirationResult, ExpirationResult, error) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()
 
+	modTime := file.ModTime
+
 	localExpiration := project.LocalExpiration.GetNext(modTime)
 	remoteExpiration := project.RemoteExpiration.GetNext(modTime)
+
+	// check if any override is set for this file (file.Path)
+	override, exists := db.remoteExpirationOverrides[file.Path]
+	if exists {
+		remoteExpiration = override
+		delete(db.remoteExpirationOverrides, file.Path)
+	}
 
 	// save, because GetNext have updated project's FileCount
 	err := db.save()
@@ -500,4 +511,11 @@ func (db *ProjectDatabase) Stats() (ProjectDBStats, error) {
 // GetPath of the database
 func (db *ProjectDatabase) GetPath() string {
 	return db.filename
+}
+
+func (db *ProjectDatabase) SetRemoteExpirationOverride(filePath string, exp ExpirationResult) {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	db.remoteExpirationOverrides[filePath] = exp
 }

@@ -27,7 +27,7 @@ func (app *App) queueFile(projectName string, file File) {
 		return
 	}
 
-	localExpiration, remoteExpiration, err := app.ProjectDB.GetProjectNextExpiration(project, file.ModTime)
+	localExpiration, remoteExpiration, err := app.ProjectDB.GetProjectNextExpiration(project, &file)
 	if err != nil {
 		go app.unqueueFile(projectName, file, err)
 		return

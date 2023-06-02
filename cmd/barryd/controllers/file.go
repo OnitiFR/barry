@@ -149,17 +149,23 @@ func FileUploadController(req *server.Request) {
 		}
 	}
 
-	// expireDate := time.Now().Add(expire)
+	path := filepath.Join(req.App.Config.QueuePath, project.Path, header.Filename)
 
-	out, err := os.CreateTemp("", "barry-upload")
+	if expire > 0 {
+		expRes := server.ExpirationResult{
+			Original: expireStr,
+			Keep:     expire,
+		}
+		req.App.ProjectDB.SetRemoteExpirationOverride(path, expRes)
+	}
+
+	out, err := os.Create(path)
 	if err != nil {
-		msg := fmt.Sprintf("can't create temp file: %s", err.Error())
+		msg := fmt.Sprintf("can't create file: %s", err.Error())
 		req.App.Log.Error(projectName, msg)
 		http.Error(req.Response, msg, 500)
 		return
 	}
-	defer os.Remove(out.Name())
-	defer out.Close()
 
 	_, err = io.Copy(out, formFile)
 	if err != nil {
@@ -169,49 +175,13 @@ func FileUploadController(req *server.Request) {
 		return
 	}
 
-	file := &server.File{
-		Filename: header.Filename,
-		Path:     out.Name(),
-		ModTime:  modTime,
-		Size:     header.Size,
-		AddedAt:  time.Now(),
-		Status:   server.FileStatusNew,
-	}
-
-	localExpiration, remoteExpiration, err := req.App.ProjectDB.GetProjectNextExpiration(project, file.ModTime)
+	err = os.Chtimes(path, modTime, modTime)
 	if err != nil {
-		msg := fmt.Sprintf("can't get expiration: %s", err.Error())
+		msg := fmt.Sprintf("can't set modTime: %s", err.Error())
 		req.App.Log.Error(projectName, msg)
 		http.Error(req.Response, msg, 500)
 		return
 	}
-
-	file.ExpireLocal = file.ModTime.Add(localExpiration.Keep)
-	file.ExpireLocalOrg = localExpiration.Original
-	if expire == 0 {
-		file.ExpireRemote = file.ModTime.Add(remoteExpiration.Keep)
-		file.ExpireRemoteOrg = remoteExpiration.Original
-		file.RemoteKeep = remoteExpiration.Keep
-	} else {
-		file.ExpireRemote = time.Now().Add(expire)
-		file.ExpireRemoteOrg = expireStr
-		file.RemoteKeep = expire
-	}
-
-	err = req.App.UploadAndStore(projectName, file)
-	if err != nil {
-		msg := fmt.Sprintf("can't store file: %s", err.Error())
-		req.App.Log.Error(projectName, msg)
-		http.Error(req.Response, msg, 500)
-		return
-	}
-
-	// find (or create ?) project (GetByName / FindOrCreateProject)
-	// build a File (wait_list.go:127)
-	// expiration: see queueFile() in app_funcs.go
-	// move file to the right place (UploadAndStore)
-	// TODO: check that the file is added to the project
-
 }
 
 // FilePushStatusController will start to push the (available) file to a remote
