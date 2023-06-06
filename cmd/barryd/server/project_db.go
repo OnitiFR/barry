@@ -513,6 +513,7 @@ func (db *ProjectDatabase) GetPath() string {
 	return db.filename
 }
 
+// SetRemoteExpirationOverride force an expiration for a future coming file
 func (db *ProjectDatabase) SetRemoteExpirationOverride(filePath string, exp ExpirationResult) {
 	db.mutex.Lock()
 	defer db.mutex.Unlock()

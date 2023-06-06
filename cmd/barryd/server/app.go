@@ -8,8 +8,10 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/OnitiFR/barry/common"
@@ -123,6 +125,8 @@ func (app *App) Init(trace bool, pretty bool) error {
 	}
 	app.APIKeysDB = keysDB
 
+	app.initSigHandler()
+
 	return nil
 }
 
@@ -235,7 +239,7 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 	}
 	app.Log.Tracef(projectName, "using container '%s' for file '%s'", bestContainer, file.Filename)
 
-	file.Status = FileStatusUploading
+	file.Status = FileStatusUploading // info: does not propagate back to the WaitList (useless?)
 	file.Cost = minimumCost
 	file.Container = bestContainer
 
@@ -257,7 +261,7 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 		return fmt.Errorf("move error: %s", err)
 	}
 
-	file.Status = FileStatusUploaded
+	file.Status = FileStatusUploaded // info: does not propagate back to the WaitList (useless?)
 
 	// add to database
 	err = app.ProjectDB.AddFile(projectName, file)
@@ -457,4 +461,16 @@ func (app *App) ScheduleSelfBackup() {
 		}
 		app.Log.Trace(MsgGlob, "self-backup done")
 	}
+}
+
+// kill -USR2 $(pidof barryd)
+func (app *App) initSigHandler() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGUSR2)
+
+	go func() {
+		for range c {
+			app.WaitList.Dump()
+		}
+	}()
 }

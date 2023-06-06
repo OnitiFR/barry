@@ -111,7 +111,7 @@ func FileUploadController(req *server.Request) {
 	if err != nil {
 		msg := fmt.Sprintf("can't find project '%s': %s", projectName, err.Error())
 		req.App.Log.Error(projectName, msg)
-		http.Error(req.Response, msg, 500)
+		http.Error(req.Response, msg, 404)
 		return
 	}
 
@@ -131,7 +131,7 @@ func FileUploadController(req *server.Request) {
 		if err != nil {
 			msg := fmt.Sprintf("can't convert expire value to int: %s", err.Error())
 			req.App.Log.Error(projectName, msg)
-			http.Error(req.Response, msg, 500)
+			http.Error(req.Response, msg, 400)
 			return
 		}
 		expire = time.Duration(seconds) * time.Second
@@ -144,19 +144,34 @@ func FileUploadController(req *server.Request) {
 		if err != nil {
 			msg := fmt.Sprintf("can't parse mod_time value: %s", err.Error())
 			req.App.Log.Error(projectName, msg)
-			http.Error(req.Response, msg, 500)
+			http.Error(req.Response, msg, 400)
 			return
 		}
 	}
 
+	if req.App.ProjectDB.FileExists(projectName, header.Filename) {
+		msg := fmt.Sprintf("file '%s' already exists in project '%s'", header.Filename, projectName)
+		req.App.Log.Error(projectName, msg)
+		http.Error(req.Response, msg, http.StatusForbidden)
+		return
+	}
+
+	if req.App.WaitList.FileExists(projectName, header.Filename) {
+		msg := fmt.Sprintf("file '%s/%s' already exists in wait list", projectName, header.Filename)
+		req.App.Log.Error(projectName, msg)
+		http.Error(req.Response, msg, http.StatusForbidden)
+		return
+	}
+
 	path := filepath.Join(req.App.Config.QueuePath, project.Path, header.Filename)
+	virtPath := filepath.Join(project.Path, header.Filename)
 
 	if expire > 0 {
 		expRes := server.ExpirationResult{
-			Original: expireStr,
+			Original: expire.String(),
 			Keep:     expire,
 		}
-		req.App.ProjectDB.SetRemoteExpirationOverride(path, expRes)
+		req.App.ProjectDB.SetRemoteExpirationOverride(virtPath, expRes)
 	}
 
 	out, err := os.Create(path)

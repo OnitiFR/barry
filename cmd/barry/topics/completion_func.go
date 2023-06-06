@@ -67,7 +67,7 @@ __internal_file_push() {
 
 __barry_custom_func() {
     case ${last_command} in
-		barry_project_list | barry_project_infos | barry_project_archive | barry_project_unarchive)
+		barry_project_list | barry_project_infos | barry_project_archive | barry_project_unarchive | barry_file_upload)
             __internal_list_projects
             return
             ;;

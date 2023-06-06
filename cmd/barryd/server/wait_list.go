@@ -52,7 +52,7 @@ func (wl *WaitList) Dump() {
 	for _, project := range wl.projects {
 		fmt.Printf("- %s:\n", project.Path)
 		for _, file := range project.Files {
-			fmt.Printf("  - %s ", file.Filename)
+			fmt.Printf("[%s](%s) ", file.Filename, file.Status)
 		}
 		fmt.Printf("\n")
 	}
@@ -160,4 +160,19 @@ func (wl *WaitList) RemoveFile(projectName string, fileName string) error {
 	delete(project.Files, fileName)
 
 	return nil
+}
+
+// FileExists returns true if the file is in the WaitList
+func (wl *WaitList) FileExists(projectName string, fileName string) bool {
+	wl.mutex.Lock()
+	defer wl.mutex.Unlock()
+
+	project, projectExists := wl.projects[projectName]
+
+	if !projectExists {
+		return false
+	}
+
+	_, fileExists := project.Files[fileName]
+	return fileExists
 }

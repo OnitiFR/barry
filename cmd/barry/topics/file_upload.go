@@ -2,8 +2,6 @@ package topics
 
 import (
 	"log"
-	"os"
-	"time"
 
 	"github.com/OnitiFR/barry/cmd/barry/client"
 	"github.com/spf13/cobra"
@@ -21,15 +19,16 @@ var fileUploadloadCmd = &cobra.Command{
 			log.Fatalf("unable to parse expiration: %s", err)
 		}
 
-		infos, err := os.Stat(args[1])
-		if err != nil {
-			log.Fatal(err)
-		}
+		// should support this but behind a flag
+		// infos, err := os.Stat(args[1])
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
 
 		call := client.GlobalAPI.NewCall("POST", "/file/upload", map[string]string{
-			"project":  args[0],
-			"expire":   client.DurationAsSecondsString(expireDuration),
-			"mod_time": infos.ModTime().Format(time.RFC3339),
+			"project": args[0],
+			"expire":  client.DurationAsSecondsString(expireDuration),
+			// "mod_time": infos.ModTime().Format(time.RFC3339),
 		})
 
 		err = call.AddFile("file", args[1])
