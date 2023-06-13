@@ -325,6 +325,10 @@ func (db *ProjectDatabase) GetProjectNextExpiration(project *Project, file *File
 	override, exists := db.remoteExpirationOverrides[file.Path]
 	if exists {
 		remoteExpiration = override
+		if localExpiration.Keep > remoteExpiration.Keep {
+			localExpiration = override
+		}
+
 		delete(db.remoteExpirationOverrides, file.Path)
 	}
 

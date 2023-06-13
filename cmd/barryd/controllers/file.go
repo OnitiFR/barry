@@ -103,7 +103,7 @@ func FileDownloadController(req *server.Request) {
 
 // FileUploadController will upload a file to the server
 func FileUploadController(req *server.Request) {
-	req.Response.Header().Set("Content-Type", "text/plain")
+	req.Response.Header().Set("Content-Type", "application/x-ndtext")
 
 	projectName := req.HTTP.FormValue("project")
 
@@ -197,6 +197,34 @@ func FileUploadController(req *server.Request) {
 		http.Error(req.Response, msg, 500)
 		return
 	}
+
+	req.App.Log.Infof(projectName, "file '%s' (%s) is manually uploaded by key '%s', expire: %s", header.Filename, projectName, req.APIKey.Comment, expire.String())
+
+	message := fmt.Sprintf("file '%s' uploaded, waiting final storage for more details…\nYou can safely break the command now with CTRL+c if you want.\n", header.Filename)
+	req.Response.WriteHeader(http.StatusOK)
+	req.Response.Write([]byte(message))
+	if f, ok := req.Response.(http.Flusher); ok {
+		f.Flush()
+	}
+
+	// wait for the file to be added to the project
+	var projectFile *server.File
+	for {
+		projectFile = req.App.ProjectDB.FindFile(projectName, header.Filename)
+		if projectFile != nil {
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	maxExpire := projectFile.ExpireRemote
+	if projectFile.ExpireLocal.After(projectFile.ExpireRemote) {
+		maxExpire = projectFile.ExpireLocal
+	}
+
+	message = fmt.Sprintf("---\nExpire: %s\nLifetime cost: %.2f\n", maxExpire.Format("2006-01-02 15:04"), projectFile.Cost)
+	req.Response.Write([]byte(message))
 }
 
 // FilePushStatusController will start to push the (available) file to a remote

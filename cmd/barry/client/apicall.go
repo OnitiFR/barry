@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -223,6 +224,14 @@ func (call *APICall) Do() {
 			if err != nil {
 				log.Fatal(err)
 			}
+		}
+	case "application/x-ndtext":
+		scanner := bufio.NewScanner(resp.Body)
+		for scanner.Scan() {
+			fmt.Println(scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			log.Fatal(err)
 		}
 	default:
 		log.Fatalf("unsupported content type '%s'", mime)

@@ -19,7 +19,11 @@ var fileUploadloadCmd = &cobra.Command{
 			log.Fatalf("unable to parse expiration: %s", err)
 		}
 
-		// should support this but behind a flag
+		if expireDuration == 0 {
+			log.Fatal("invalid expiration delay")
+		}
+
+		// we should support this but behind a flag
 		// infos, err := os.Stat(args[1])
 		// if err != nil {
 		// 	log.Fatal(err)
