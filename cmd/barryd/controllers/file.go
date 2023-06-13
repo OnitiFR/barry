@@ -200,7 +200,7 @@ func FileUploadController(req *server.Request) {
 
 	req.App.Log.Infof(projectName, "file '%s' (%s) is manually uploaded by key '%s', expire: %s", header.Filename, projectName, req.APIKey.Comment, expire.String())
 
-	message := fmt.Sprintf("file '%s' uploaded, waiting final storage for more details…\nYou can safely break the command now with CTRL+c if you want.\n", header.Filename)
+	message := fmt.Sprintf("file '%s' uploaded, waiting final storage for more details…\nIt may take a few minutes.\nYou can safely break the command now with CTRL+c if you want.\n", header.Filename)
 	req.Response.WriteHeader(http.StatusOK)
 	req.Response.Write([]byte(message))
 	if f, ok := req.Response.(http.Flusher); ok {
