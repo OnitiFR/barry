@@ -1,15 +1,22 @@
 package server
 
 import (
+	"bufio"
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"os"
 	"path"
 	"strconv"
 )
+
+const EncryptionIvSize = 16
 
 type tomlEncryption struct {
 	Name    string
@@ -156,6 +163,171 @@ func (conf *AppConfig) GetDefaultEncryption() *EncryptionConfig {
 	for _, encryption := range conf.Encryptions {
 		if encryption.Default {
 			return encryption
+		}
+	}
+
+	return nil
+}
+
+// GetEncryption return an encryption by name, or an error if not found
+func (conf *AppConfig) GetEncryption(name string) (*EncryptionConfig, error) {
+	encryption, exists := conf.Encryptions[name]
+	if !exists {
+		return nil, fmt.Errorf("encryption '%s' not found", name)
+	}
+
+	return encryption, nil
+}
+
+// EncryptFile encrypt a file
+func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string, rand *rand.Rand) error {
+	infile, err := os.Open(srcFilename)
+	if err != nil {
+		return err
+	}
+	defer infile.Close()
+
+	block, err := aes.NewCipher(enc.Key)
+	if err != nil {
+		return err
+	}
+
+	iv := make([]byte, block.BlockSize())
+	if _, err := io.ReadFull(rand, iv); err != nil {
+		return err
+	}
+
+	outfile, err := os.OpenFile(dstFilename, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	defer outfile.Close()
+
+	// write version flag
+	outfile.Write([]byte{1})
+
+	// write comment
+	outfile.WriteString("Barry Encoded v1")
+
+	// write key name
+	outfile.WriteString(enc.Name)
+
+	// write the IV
+	outfile.Write(iv)
+
+	// The buffer size must be multiple of 16 bytes
+	bufferSize := 4096
+
+	// write buffer size
+	err = binary.Write(outfile, binary.LittleEndian, uint32(bufferSize))
+	if err != nil {
+		return err
+	}
+
+	buf := make([]byte, bufferSize)
+	stream := cipher.NewCTR(block, iv)
+	for {
+		n, err := infile.Read(buf)
+		if n > 0 {
+			stream.XORKeyStream(buf, buf[:n])
+			outfile.Write(buf[:n])
+		}
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// DecryptFile decrypt a file
+// TODO: add security checks to header reading
+func (conf *AppConfig) DecryptFile(srcFilename string, dstFilename string) error {
+	infile, err := os.Open(srcFilename)
+	if err != nil {
+		return err
+	}
+	defer infile.Close()
+
+	// read version flag
+	version := make([]byte, 1)
+	_, err = infile.Read(version)
+	if err != nil {
+		return err
+	}
+
+	if version[0] != 1 {
+		return fmt.Errorf("unsupported encryption version")
+	}
+
+	// read comment string
+	_, err = bufio.NewReader(infile).ReadString(0)
+	if err != nil {
+		return err
+	}
+
+	// read key name string
+	keyName, err := bufio.NewReader(infile).ReadString(0)
+	if err != nil {
+		return err
+	}
+
+	cryptConf, err := conf.GetEncryption(keyName)
+	if err != nil {
+		return err
+	}
+
+	block, err := aes.NewCipher(cryptConf.Key)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	// read the IV
+	iv := make([]byte, block.BlockSize())
+	n, err := infile.Read(iv)
+	if err != nil {
+		return err
+	}
+
+	if n != block.BlockSize() {
+		return fmt.Errorf("invalid IV size")
+	}
+
+	// read buffer size
+	var bufferSize uint32
+	err = binary.Read(infile, binary.LittleEndian, &bufferSize)
+	if err != nil {
+		return err
+	}
+
+	outfile, err := os.OpenFile(dstFilename, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	defer outfile.Close()
+
+	// The buffer size must be multiple of 16 bytes
+	buf := make([]byte, bufferSize)
+	stream := cipher.NewCTR(block, iv)
+	for {
+		n, err := infile.Read(buf)
+		if n > 0 {
+			stream.XORKeyStream(buf, buf[:n])
+			// Write into file
+			outfile.Write(buf[:n])
+		}
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return err
 		}
 	}
 
