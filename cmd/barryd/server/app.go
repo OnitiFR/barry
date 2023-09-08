@@ -44,11 +44,11 @@ const (
 )
 
 // NewApp create a new application
-func NewApp(config *AppConfig) (*App, error) {
+func NewApp(config *AppConfig, rand *rand.Rand) (*App, error) {
 	app := &App{
 		StartTime: time.Now(),
 		Config:    config,
-		Rand:      rand.New(rand.NewSource(time.Now().UnixNano())),
+		Rand:      rand,
 		routesAPI: make(map[string][]*Route),
 		MuxAPI:    http.NewServeMux(),
 	}
@@ -60,6 +60,14 @@ func (app *App) Init(trace bool, pretty bool) error {
 	app.LogHistory = NewLogHistory(LogHistorySize)
 	app.Log = NewLog(trace, pretty, app.LogHistory)
 	app.Log.Infof(MsgGlob, "starting barry version %s", common.ServerVersion)
+
+	app.Log.Infof(MsgGlob, "found %d encryption keys", len(app.Config.Encryptions))
+	defEncrypt := app.Config.GetDefaultEncryption()
+	if defEncrypt != nil {
+		app.Log.Infof(MsgGlob, "default key: %s", defEncrypt.Name)
+	} else {
+		app.Log.Warning(MsgGlob, "no default key defined, backups will be unencrypted")
+	}
 
 	dataBaseFilename, err := app.LocalStoragePath("data", FilenameProjectDB)
 	if err != nil {

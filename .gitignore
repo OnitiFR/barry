@@ -1,4 +1,5 @@
 /etc/barry.toml
+/etc/*.key
 /var/*
 /etc/alerts/*.sh
 

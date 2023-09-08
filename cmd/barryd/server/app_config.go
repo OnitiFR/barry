@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -23,6 +24,7 @@ type AppConfig struct {
 	API                 *APIConfig
 	Containers          []*Container
 	Pushers             map[string]*PusherConfig
+	Encryptions         map[string]*EncryptionConfig
 	configPath          string
 }
 
@@ -41,6 +43,7 @@ type tomlAppConfig struct {
 	API                 *tomlAPIConfig
 	Containers          []*tomlContainer       `toml:"container"`
 	PushDestinations    []*tomlPushDestination `toml:"push_destination"`
+	Encryptions         []*tomlEncryption      `toml:"encryption"`
 }
 
 type tomlAPIConfig struct {
@@ -48,7 +51,7 @@ type tomlAPIConfig struct {
 }
 
 // NewAppConfigFromTomlFile return a AppConfig using a TOML file in configPath
-func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
+func NewAppConfigFromTomlFile(configPath string, autogenKey bool, rand *rand.Rand) (*AppConfig, error) {
 	filename := path.Clean(configPath + "/barry.toml")
 
 	appConfig := &AppConfig{
@@ -166,6 +169,11 @@ func NewAppConfigFromTomlFile(configPath string) (*AppConfig, error) {
 	}
 
 	appConfig.Pushers, err = NewPushersConfigFromToml(tConfig.PushDestinations)
+	if err != nil {
+		return nil, err
+	}
+
+	appConfig.Encryptions, err = NewEncryptionsConfigFromToml(tConfig.Encryptions, autogenKey, rand, configPath)
 	if err != nil {
 		return nil, err
 	}
