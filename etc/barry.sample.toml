@@ -82,3 +82,15 @@ name = "mulch"
 type = "mulch"
 url = "https://mulch.host:8686"
 key = "xxx"
+
+
+# Encryption keys.
+# You can generate new key files with "-genkey" flag.
+# Key files contains a single ASCII string, we encourage you to save them elsewhere.
+# Only one key can be default, it will be used for new backups.
+# Remove old keys only if you are sure that no backup is using it anymore.
+#
+# [[encryption]]
+# name = "oniti-v1"
+# file = "oniti-v1.key"
+# default = true
