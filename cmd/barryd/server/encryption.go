@@ -246,7 +246,7 @@ func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string,
 }
 
 // DecryptFile decrypt a file
-// TODO: add security checks to header reading
+// TODO: add security checks to header reading (limit string length, buffer size, etc)
 func (conf *AppConfig) DecryptFile(srcFilename string, dstFilename string) error {
 	infile, err := os.Open(srcFilename)
 	if err != nil {
@@ -311,14 +311,12 @@ func (conf *AppConfig) DecryptFile(srcFilename string, dstFilename string) error
 	}
 	defer outfile.Close()
 
-	// The buffer size must be multiple of 16 bytes
 	buf := make([]byte, bufferSize)
 	stream := cipher.NewCTR(block, iv)
 	for {
 		n, err := infile.Read(buf)
 		if n > 0 {
 			stream.XORKeyStream(buf, buf[:n])
-			// Write into file
 			outfile.Write(buf[:n])
 		}
 
