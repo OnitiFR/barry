@@ -30,6 +30,7 @@ type File struct {
 	ExpiredRemote   bool
 	Container       string
 	Cost            float64
+	Encrypted       bool
 	RetrievedPath   string
 	RetrievedDate   time.Time
 	retriever       *Retriever

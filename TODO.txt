@@ -9,3 +9,8 @@
 - create project from cli (so expiration params are ready BEFORE first upload)
 - allow Swift config from env
 - use original Expiration values when uploading after a failure
+
+WIP: encryption
+- when does the decryption happen? MakeFileAvailable() ?
+- display encrypted flag in client
+- provide a manual decryption tool?

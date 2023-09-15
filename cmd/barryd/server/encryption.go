@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bufio"
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
@@ -14,6 +13,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 )
 
 const EncryptionIvSize = 16
@@ -204,16 +204,38 @@ func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string,
 	defer outfile.Close()
 
 	// write version flag
-	outfile.Write([]byte{1})
+	_, err = outfile.Write([]byte{1})
+	if err != nil {
+		return err
+	}
 
 	// write comment
-	outfile.WriteString("Barry Encoded v1")
+	_, err = outfile.WriteString("Barry Encoded v1")
+	if err != nil {
+		return err
+	}
+
+	_, err = outfile.Write([]byte{0})
+	if err != nil {
+		return err
+	}
 
 	// write key name
-	outfile.WriteString(enc.Name)
+	_, err = outfile.WriteString(enc.Name)
+	if err != nil {
+		return err
+	}
+
+	_, err = outfile.Write([]byte{0})
+	if err != nil {
+		return err
+	}
 
 	// write the IV
-	outfile.Write(iv)
+	_, err = outfile.Write(iv)
+	if err != nil {
+		return err
+	}
 
 	// The buffer size must be multiple of 16 bytes
 	bufferSize := 4096
@@ -245,9 +267,63 @@ func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string,
 	return nil
 }
 
+// EncryptFileInPlace encrypt a file in place (using a temp file)
+func (enc *EncryptionConfig) EncryptFileInPlace(filename string, rand *rand.Rand, log *Log) error {
+	// get original file info
+	stat, err := os.Stat(filename)
+	if err != nil {
+		return err
+	}
+
+	// create a temp file
+	tmp, err := os.CreateTemp("", path.Base(filename)+"-encrypt")
+	if err != nil {
+		return err
+	}
+
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	defer os.Remove(tmp.Name())
+
+	log.Tracef(MsgGlob, "encrypting %s (using %s)", filename, tmp.Name())
+	start := time.Now()
+
+	// encrypt the file
+	err = enc.EncryptFile(filename, tmp.Name(), rand)
+	if err != nil {
+		return err
+	}
+
+	log.Tracef(MsgGlob, "encryption of %s done in %s, finalizing", filename, time.Since(start))
+	start = time.Now()
+
+	// move the temp file to the original file
+	err = os.Rename(tmp.Name(), filename)
+	if err != nil {
+		return err
+	}
+
+	// restore original file info (mode, date)
+	err = os.Chmod(filename, stat.Mode())
+	if err != nil {
+		return err
+	}
+
+	err = os.Chtimes(filename, stat.ModTime(), stat.ModTime())
+	if err != nil {
+		return err
+	}
+
+	log.Tracef(MsgGlob, "finalization of %s done in %s", filename, time.Since(start))
+
+	return nil
+}
+
 // DecryptFile decrypt a file
 // TODO: add security checks to header reading (limit string length, buffer size, etc)
-func (conf *AppConfig) DecryptFile(srcFilename string, dstFilename string) error {
+func (app *App) DecryptFile(srcFilename string, dstFilename string) error {
 	infile, err := os.Open(srcFilename)
 	if err != nil {
 		return err
@@ -266,18 +342,18 @@ func (conf *AppConfig) DecryptFile(srcFilename string, dstFilename string) error
 	}
 
 	// read comment string
-	_, err = bufio.NewReader(infile).ReadString(0)
+	_, err = ReadString(infile, 128)
 	if err != nil {
 		return err
 	}
 
 	// read key name string
-	keyName, err := bufio.NewReader(infile).ReadString(0)
+	keyName, err := ReadString(infile, 64)
 	if err != nil {
 		return err
 	}
 
-	cryptConf, err := conf.GetEncryption(keyName)
+	cryptConf, err := app.Config.GetEncryption(keyName)
 	if err != nil {
 		return err
 	}
@@ -329,5 +405,10 @@ func (conf *AppConfig) DecryptFile(srcFilename string, dstFilename string) error
 		}
 	}
 
+	return nil
+}
+
+// DecryptFileInPlace decrypt a file in place (using a temp file)
+func (conf *AppConfig) DecryptFileInPlace(filename string, log *Log) error {
 	return nil
 }

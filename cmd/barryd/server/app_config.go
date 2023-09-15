@@ -17,6 +17,7 @@ import (
 type AppConfig struct {
 	QueuePath           string
 	LocalStoragePath    string
+	TempPath            string
 	NumUploaders        int
 	SelfBackupContainer string
 	Expiration          *ExpirationConfig
@@ -36,6 +37,7 @@ type APIConfig struct {
 type tomlAppConfig struct {
 	QueuePath           string `toml:"queue_path"`
 	LocalStoragePath    string `toml:"local_storage_path"`
+	TempPath            string `toml:"temp_path"`
 	NumUploaders        int    `toml:"num_uploaders"`
 	SelfBackupContainer string `toml:"self_backup_container"`
 	Expiration          *tomlExpiration
@@ -128,6 +130,8 @@ func NewAppConfigFromTomlFile(configPath string, autogenKey bool, rand *rand.Ran
 	if !sameDevice {
 		return nil, fmt.Errorf("'%s' and '%s' must be on the same disk/device/partition", appConfig.QueuePath, appConfig.LocalStoragePath)
 	}
+
+	appConfig.TempPath = tConfig.TempPath
 
 	if tConfig.NumUploaders < 1 {
 		return nil, errors.New("at least one uploader is needed (num_uploaders setting)")

@@ -10,6 +10,10 @@ queue_path = "var/queue"
 # will move large files from queue_path to local_storage_path.
 local_storage_path = "var/storage"
 
+# Barry may need to store (potentially large) temporary files.
+# The system temporary directory is used by default and may be insufficient.
+#temp_path = "/home/user/tmp"
+
 # Maximum files to upload at the same time
 # warning: minimum required memory = num_uploaders * chunk_size * 2
 num_uploaders = 2

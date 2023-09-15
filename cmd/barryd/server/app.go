@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"sync/atomic"
 	"syscall"
@@ -57,6 +58,10 @@ func NewApp(config *AppConfig, rand *rand.Rand) (*App, error) {
 
 // Init the application
 func (app *App) Init(trace bool, pretty bool) error {
+	if os.Getenv("TMPDIR") == "" {
+		os.Setenv("TMPDIR", app.Config.TempPath)
+	}
+
 	app.LogHistory = NewLogHistory(LogHistorySize)
 	app.Log = NewLog(trace, pretty, app.LogHistory)
 	app.Log.Infof(MsgGlob, "starting barry version %s", common.ServerVersion)
@@ -231,6 +236,18 @@ func (app *App) MoveFileToStorage(file *File) error {
 
 // UploadAndStore will upload and store a file
 func (app *App) UploadAndStore(projectName string, file *File) error {
+	defEncrypt := app.Config.GetDefaultEncryption()
+	if defEncrypt != nil {
+		sourcePath := path.Clean(app.Config.QueuePath + "/" + file.Path)
+
+		err := defEncrypt.EncryptFileInPlace(sourcePath, app.Rand, app.Log)
+		if err != nil {
+			return err
+		}
+
+		file.Encrypted = true
+	}
+
 	// let's found the cheapest container for this file
 	var minimumCost float64
 	var bestContainer string
