@@ -66,15 +66,9 @@ func getLocalPath(fullPath string, app *server.App) (string, *server.File, error
 		return "", file, fmt.Errorf("file '%s' in project '%s' is not available", fileName, projectName)
 	}
 
-	path := ""
-	if !file.ExpiredLocal {
-		path, _ = app.LocalStoragePath(server.FileStorageName, file.Path)
-	} else if file.RetrievedPath != "" {
-		path = file.RetrievedPath
-	}
-
-	if path == "" {
-		return "", file, fmt.Errorf("can't file local path for file '%s' in project '%s'", fileName, projectName)
+	path, err := file.GetLocalPath(app)
+	if err != nil {
+		return "", file, err
 	}
 
 	return path, file, nil

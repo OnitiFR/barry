@@ -409,6 +409,54 @@ func (app *App) DecryptFile(srcFilename string, dstFilename string) error {
 }
 
 // DecryptFileInPlace decrypt a file in place (using a temp file)
-func (conf *AppConfig) DecryptFileInPlace(filename string, log *Log) error {
+func (app *App) DecryptFileInPlace(filename string, log *Log) error {
+	// get original file info
+	stat, err := os.Stat(filename)
+	if err != nil {
+		return err
+	}
+
+	// create a temp file
+	tmp, err := os.CreateTemp("", path.Base(filename)+"-decrypt")
+	if err != nil {
+		return err
+	}
+
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	defer os.Remove(tmp.Name())
+
+	log.Tracef(MsgGlob, "decrypting %s (using %s)", filename, tmp.Name())
+	start := time.Now()
+
+	err = app.DecryptFile(filename, tmp.Name())
+	if err != nil {
+		return err
+	}
+
+	log.Tracef(MsgGlob, "decryption of %s done in %s, finalizing", filename, time.Since(start))
+	start = time.Now()
+
+	// move the temp file to the original file
+	err = os.Rename(tmp.Name(), filename)
+	if err != nil {
+		return err
+	}
+
+	// restore original file info (mode, date)
+	err = os.Chmod(filename, stat.Mode())
+	if err != nil {
+		return err
+	}
+
+	err = os.Chtimes(filename, stat.ModTime(), stat.ModTime())
+	if err != nil {
+		return err
+	}
+
+	log.Tracef(MsgGlob, "finalization of %s done in %s", filename, time.Since(start))
+
 	return nil
 }

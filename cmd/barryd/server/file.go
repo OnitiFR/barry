@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"path/filepath"
 	"time"
 )
@@ -55,4 +56,20 @@ func (file *File) checkInit() {
 func (file *File) GetPusher(destination string) Pusher {
 	file.checkInit()
 	return file.pushers[destination]
+}
+
+// GetLocalPath will return the hypothetical local path of the file (valid only if file is available)
+func (file *File) GetLocalPath(app *App) (string, error) {
+	path := ""
+	if !file.ExpiredLocal {
+		path, _ = app.LocalStoragePath(FileStorageName, file.Path)
+	} else if file.RetrievedPath != "" {
+		path = file.RetrievedPath
+	}
+
+	if path == "" {
+		return "", fmt.Errorf("can't file local path for file '%s' of project '%s'", file.Filename, file.ProjectName())
+	}
+
+	return path, nil
 }

@@ -299,11 +299,40 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 	return nil
 }
 
-// MakeFileAvailable will do all the work needed to make the file available for download
+// MakeFileAvailable will do all the work needed to make the file available (downloadable and decypted)
 // This action is asynchronous, the function will return current file status with an ETA.
 // This function is designed to be called repetitively.
-// TODO: add some sort of watcher to jump automatically from "unsealed" to "retrieving" status
 func (app *App) MakeFileAvailable(file *File) (common.APIFileStatus, error) {
+	status, err := app.makeFileLocal(file)
+	if err != nil {
+		return status, err
+	}
+
+	if status.Status != common.APIFileStatusAvailable {
+		return status, nil
+	}
+
+	// File is available locally, let's decrypt it if needed
+	if file.Encrypted {
+		sourcePath, err := file.GetLocalPath(app)
+		if err != nil {
+			return status, err
+		}
+
+		err = app.DecryptFileInPlace(sourcePath, app.Log)
+		if err != nil {
+			return status, err
+		}
+		file.Encrypted = false
+		app.ProjectDB.Save()
+	}
+
+	return status, nil
+}
+
+// makeFileLocal do most of MakeFileAvailable internal's work, except decryption
+// TODO: add some sort of watcher to jump automatically from "unsealed" to "retrieving" status
+func (app *App) makeFileLocal(file *File) (common.APIFileStatus, error) {
 	var status common.APIFileStatus
 
 	if !file.ExpiredLocal {

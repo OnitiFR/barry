@@ -11,6 +11,6 @@
 - use original Expiration values when uploading after a failure
 
 WIP: encryption
-- when does the decryption happen? MakeFileAvailable() ?
+- check all decryption paths! (local download, retrieved, pushed, etc)
 - display encrypted flag in client
 - provide a manual decryption tool?
