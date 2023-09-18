@@ -17,4 +17,5 @@ type APIFileListEntry struct {
 	ExpiredRemote bool
 	Container     string
 	Retrieved     bool
+	Encrypted     bool
 }

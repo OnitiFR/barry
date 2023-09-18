@@ -17,6 +17,7 @@ import (
 )
 
 const EncryptionIvSize = 16
+const BarrySignature = "BARRY1"
 
 type tomlEncryption struct {
 	Name    string
@@ -207,14 +208,13 @@ func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string,
 	}
 	defer outfile.Close()
 
-	// write version flag
-	_, err = outfile.Write([]byte{1})
+	_, err = outfile.WriteString(BarrySignature)
 	if err != nil {
 		return err
 	}
 
 	// write comment
-	_, err = outfile.WriteString("Barry Encoded v1")
+	_, err = outfile.WriteString("Barry Encryption v1")
 	if err != nil {
 		return err
 	}
@@ -334,15 +334,14 @@ func (app *App) DecryptFile(srcFilename string, dstFilename string) error {
 	}
 	defer infile.Close()
 
-	// read version flag
-	version := make([]byte, 1)
-	_, err = infile.Read(version)
+	// read signature
+	sig, err := ReadString(infile, len(BarrySignature))
 	if err != nil {
 		return err
 	}
 
-	if version[0] != 1 {
-		return fmt.Errorf("unsupported encryption version")
+	if sig != BarrySignature {
+		return fmt.Errorf("invalid signature")
 	}
 
 	// read comment string

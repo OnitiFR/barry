@@ -116,6 +116,13 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 		red := color.New(color.FgHiRed).SprintFunc()
 
 		for _, line := range data {
+			var name string
+			if line.Encrypted {
+				name = "🔒"
+			} else {
+				name = "  "
+			}
+			name += line.Filename
 			maxExpire := line.ExpireRemote
 			container := "(local)"
 			if line.ExpireLocal.After(line.ExpireRemote) {
@@ -134,7 +141,7 @@ func projectFileListCB(reader io.Reader, headers http.Header) {
 				container = "(retrieved)"
 			}
 			strData = append(strData, []string{
-				line.Filename,
+				name,
 				line.ModTime.Format("2006-01-02 15:04"),
 				datasize.ByteSize(line.Size).HR(),
 				expire,

@@ -105,6 +105,7 @@ func ListProjectController(req *server.Request) {
 			ExpiredRemote: file.ExpiredRemote,
 			Container:     file.Container,
 			Retrieved:     retrieved,
+			Encrypted:     file.Encrypted,
 		})
 	}
 
