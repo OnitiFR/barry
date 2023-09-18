@@ -12,5 +12,7 @@
 
 WIP: encryption
 - check all decryption paths! (local download, retrieved, pushed, etc)
-- display encrypted flag in client
+- we currently decrypt files once for all when they're made available, but what about
+  localy decrypted files when they expire? (remote is still encrypted)
+  (should we crypt them again after a short time?)
 - provide a manual decryption tool?

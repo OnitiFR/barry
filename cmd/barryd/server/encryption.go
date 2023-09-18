@@ -334,13 +334,13 @@ func (app *App) DecryptFile(srcFilename string, dstFilename string) error {
 	}
 	defer infile.Close()
 
-	// read signature
-	sig, err := ReadString(infile, len(BarrySignature))
+	sig := make([]byte, len(BarrySignature))
+	_, err = infile.Read(sig)
 	if err != nil {
 		return err
 	}
 
-	if sig != BarrySignature {
+	if string(sig) != BarrySignature {
 		return fmt.Errorf("invalid signature")
 	}
 
