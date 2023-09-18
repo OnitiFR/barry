@@ -54,6 +54,10 @@ func NewEncryptionsConfigFromToml(tEncryptions []*tomlEncryption, autogenerate b
 			return nil, fmt.Errorf("encryption %s: 'file' is needed", tEncryption.Name)
 		}
 
+		if path.Ext(tEncryption.File) != ".key" {
+			return nil, fmt.Errorf("encryption %s: 'file' must have a .key extension", tEncryption.Name)
+		}
+
 		keyPath := path.Clean(configPath + "/" + tEncryption.File)
 		conf.Filename = keyPath
 

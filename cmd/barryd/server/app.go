@@ -58,8 +58,18 @@ func NewApp(config *AppConfig, rand *rand.Rand) (*App, error) {
 
 // Init the application
 func (app *App) Init(trace bool, pretty bool) error {
+	// Temp dir management
 	if os.Getenv("TMPDIR") == "" {
 		os.Setenv("TMPDIR", app.Config.TempPath)
+	}
+
+	tempDir := os.TempDir()
+	sameDevice, err := AreDirsOnSameDevice(app.Config.QueuePath, tempDir)
+	if err != nil {
+		return err
+	}
+	if !sameDevice {
+		return fmt.Errorf("queue path '%s' and temp path '%s' are not on the same device (see temp_path setting or TMPDIR env)", app.Config.QueuePath, tempDir)
 	}
 
 	app.LogHistory = NewLogHistory(LogHistorySize)
