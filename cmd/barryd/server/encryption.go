@@ -8,16 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"os"
 	"path"
 	"strconv"
 	"time"
-)
 
-const EncryptionIvSize = 16
-const BarrySignature = "BARRY1"
+	"github.com/OnitiFR/barry/common"
+)
 
 type tomlEncryption struct {
 	Name    string
@@ -208,7 +206,7 @@ func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string,
 	}
 	defer outfile.Close()
 
-	_, err = outfile.WriteString(BarrySignature)
+	_, err = outfile.WriteString(common.BarrySignature)
 	if err != nil {
 		return err
 	}
@@ -326,7 +324,6 @@ func (enc *EncryptionConfig) EncryptFileInPlace(filename string, rand *rand.Rand
 }
 
 // DecryptFile decrypt a file
-// TODO: add security checks to header reading (limit string length, buffer size, etc)
 func (app *App) DecryptFile(srcFilename string, dstFilename string) error {
 	infile, err := os.Open(srcFilename)
 	if err != nil {
@@ -334,79 +331,20 @@ func (app *App) DecryptFile(srcFilename string, dstFilename string) error {
 	}
 	defer infile.Close()
 
-	sig := make([]byte, len(BarrySignature))
-	_, err = infile.Read(sig)
-	if err != nil {
-		return err
-	}
-
-	if string(sig) != BarrySignature {
-		return fmt.Errorf("invalid signature")
-	}
-
-	// read comment string
-	_, err = ReadString(infile, 128)
-	if err != nil {
-		return err
-	}
-
-	// read key name string
-	keyName, err := ReadString(infile, 64)
-	if err != nil {
-		return err
-	}
-
-	cryptConf, err := app.Config.GetEncryption(keyName)
-	if err != nil {
-		return err
-	}
-
-	block, err := aes.NewCipher(cryptConf.Key)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	// read the IV
-	iv := make([]byte, block.BlockSize())
-	n, err := infile.Read(iv)
-	if err != nil {
-		return err
-	}
-
-	if n != block.BlockSize() {
-		return fmt.Errorf("invalid IV size")
-	}
-
-	// read buffer size
-	var bufferSize uint32
-	err = binary.Read(infile, binary.LittleEndian, &bufferSize)
-	if err != nil {
-		return err
-	}
-
 	outfile, err := os.OpenFile(dstFilename, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
 	defer outfile.Close()
 
-	buf := make([]byte, bufferSize)
-	stream := cipher.NewCTR(block, iv)
-	for {
-		n, err := infile.Read(buf)
-		if n > 0 {
-			stream.XORKeyStream(buf, buf[:n])
-			outfile.Write(buf[:n])
-		}
-
-		if err == io.EOF {
-			break
-		}
-
+	common.DecryptFile(infile, outfile, func(keyName string) ([]byte, error) {
+		encryption, err := app.Config.GetEncryption(keyName)
 		if err != nil {
-			return err
+			return nil, err
 		}
-	}
+
+		return encryption.Key, nil
+	})
 
 	return nil
 }

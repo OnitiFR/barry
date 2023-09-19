@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -85,4 +86,30 @@ func CleanURL(urlIn string) (string, error) {
 	}
 	urlObj.Path = path.Clean(urlObj.Path)
 	return urlObj.String(), nil
+}
+
+// ReadString read a string from a file, byte by byte, until null (slow but convenient)
+func ReadString(file *os.File, maxLen int) (string, error) {
+	var err error
+	var s []byte
+
+	b := make([]byte, 1)
+
+	for {
+		_, err = file.Read(b)
+		if err != nil {
+			return "", err
+		}
+
+		if b[0] == 0 {
+			break
+		}
+
+		s = append(s, b[0])
+		if len(s) > maxLen {
+			return "", errors.New("string too long")
+		}
+	}
+
+	return string(s), nil
 }
