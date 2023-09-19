@@ -12,6 +12,7 @@
 
 WIP: encryption
 - check all decryption paths! (local download, retrieved, pushed, etc)
+- test perfomance! (for big files)
 - test edge cases (ex: key was removed from config since updload)
 - we currently decrypt files once for all when they're made available, but what about
   localy decrypted files when they expire? (remote is still encrypted)
