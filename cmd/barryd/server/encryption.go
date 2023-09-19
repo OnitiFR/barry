@@ -134,7 +134,7 @@ func loadKeyFile(filename string) ([]byte, error) {
 	return passphrase, nil
 }
 
-// generate a randome key file (base64 encoded)
+// generate a randome key file (256 bits, base64 encoded)
 func generateKeyFile(filename string, rand *rand.Rand) ([]byte, error) {
 	passphrase := make([]byte, 32)
 
