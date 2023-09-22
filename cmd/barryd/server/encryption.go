@@ -43,7 +43,7 @@ func NewEncryptionsConfigFromToml(tEncryptions []*tomlEncryption, autogenerate b
 
 		_, exists := res[tEncryption.Name]
 		if exists {
-			return nil, fmt.Errorf("duplicate encryption '%s'", tEncryption.Name)
+			return nil, fmt.Errorf("duplicate encryption key '%s'", tEncryption.Name)
 		}
 
 		conf := EncryptionConfig{
@@ -177,7 +177,7 @@ func (conf *AppConfig) GetDefaultEncryption() *EncryptionConfig {
 func (conf *AppConfig) GetEncryption(name string) (*EncryptionConfig, error) {
 	encryption, exists := conf.Encryptions[name]
 	if !exists {
-		return nil, fmt.Errorf("encryption '%s' not found", name)
+		return nil, fmt.Errorf("encryption key '%s' not found", name)
 	}
 
 	return encryption, nil
@@ -363,7 +363,7 @@ func (app *App) DecryptFile(srcFilename string, dstFilename string) error {
 	}
 	defer outfile.Close()
 
-	common.DecryptFile(infile, outfile, func(keyName string) ([]byte, error) {
+	err = common.DecryptFile(infile, outfile, func(keyName string) ([]byte, error) {
 		encryption, err := app.Config.GetEncryption(keyName)
 		if err != nil {
 			return nil, err
@@ -371,6 +371,10 @@ func (app *App) DecryptFile(srcFilename string, dstFilename string) error {
 
 		return encryption.Key, nil
 	})
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
