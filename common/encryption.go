@@ -1,8 +1,10 @@
 package common
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -49,6 +51,13 @@ func DecryptFile(infile *os.File, outfile *os.File, keyCallback func(string) ([]
 		log.Panic(err)
 	}
 
+	// read sha256 hash
+	expectedHash := make([]byte, 32)
+	_, err = infile.Read(expectedHash)
+	if err != nil {
+		return err
+	}
+
 	// read the IV
 	iv := make([]byte, block.BlockSize())
 	n, err := infile.Read(iv)
@@ -75,6 +84,8 @@ func DecryptFile(infile *os.File, outfile *os.File, keyCallback func(string) ([]
 		return fmt.Errorf("invalid buffer size (must be multiple of 16)")
 	}
 
+	hash := sha256.New()
+
 	buf := make([]byte, bufferSize)
 	stream := cipher.NewCTR(block, iv)
 	for {
@@ -82,6 +93,7 @@ func DecryptFile(infile *os.File, outfile *os.File, keyCallback func(string) ([]
 		if n > 0 {
 			stream.XORKeyStream(buf, buf[:n])
 			outfile.Write(buf[:n])
+			hash.Write(buf[:n])
 		}
 
 		if err == io.EOF {
@@ -91,6 +103,10 @@ func DecryptFile(infile *os.File, outfile *os.File, keyCallback func(string) ([]
 		if err != nil {
 			return err
 		}
+	}
+
+	if !bytes.Equal(hash.Sum(nil), expectedHash) {
+		return fmt.Errorf("invalid checksum, is the key correct?")
 	}
 
 	return nil

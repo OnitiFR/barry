@@ -11,7 +11,6 @@
 - use original Expiration values when uploading after a failure
 
 WIP: encryption
-- /!\ add a way to check key validity!
 - check all decryption paths! (local download, retrieved, pushed, etc)
 - test perfomance! (for big files)
 - test edge cases (ex: key was removed from config since updload)

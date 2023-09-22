@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
@@ -233,6 +234,17 @@ func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string,
 		return err
 	}
 
+	// get the current position and write a blank 256 bits checksum (so we can update it later)
+	hashPos, err := outfile.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return err
+	}
+
+	_, err = outfile.Write(make([]byte, 32))
+	if err != nil {
+		return err
+	}
+
 	// write the IV
 	_, err = outfile.Write(iv)
 	if err != nil {
@@ -248,11 +260,14 @@ func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string,
 		return err
 	}
 
+	hash := sha256.New()
+
 	buf := make([]byte, bufferSize)
 	stream := cipher.NewCTR(block, iv)
 	for {
 		n, err := infile.Read(buf)
 		if n > 0 {
+			hash.Write(buf[:n])
 			stream.XORKeyStream(buf, buf[:n])
 			outfile.Write(buf[:n])
 		}
@@ -264,6 +279,17 @@ func (enc *EncryptionConfig) EncryptFile(srcFilename string, dstFilename string,
 		if err != nil {
 			return err
 		}
+	}
+
+	// update the checksum
+	_, err = outfile.Seek(hashPos, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	_, err = outfile.Write(hash.Sum(nil))
+	if err != nil {
+		return err
 	}
 
 	return nil
