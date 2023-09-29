@@ -32,6 +32,7 @@ type File struct {
 	Container       string
 	Cost            float64
 	Encrypted       bool
+	ReEncryptDate   time.Time
 	RetrievedPath   string
 	RetrievedDate   time.Time
 	retriever       *Retriever

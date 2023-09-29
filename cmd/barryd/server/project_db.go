@@ -351,6 +351,17 @@ func (db *ProjectDatabase) ScheduleExpireFiles() {
 	}
 }
 
+// ScheduleReEncryptFiles will schedule file re-encryption tasks (call as a goroutine)
+func (db *ProjectDatabase) ScheduleReEncryptFiles(app *App) {
+	for {
+		err := db.reEncryptFiles(app)
+		if err != nil {
+			db.log.Errorf(MsgGlob, "error re-encrypting files: %s", err)
+		}
+		time.Sleep(ReEncryptDelay)
+	}
+}
+
 // ExpireLocalFiles will scan the database, deleting expired files in local storage
 func (db *ProjectDatabase) expireLocalFiles() {
 	db.mutex.Lock()
@@ -368,6 +379,13 @@ func (db *ProjectDatabase) expireLocalFiles() {
 				go db.deleteLocalFunc(file, filePath)
 
 				file.ExpiredLocal = true
+
+				// would have be re-encrypted if not expired
+				if !file.Encrypted && !file.ReEncryptDate.IsZero() {
+					file.Encrypted = true
+					file.ReEncryptDate = time.Time{}
+				}
+
 				dbModified = true
 			}
 		}
@@ -443,6 +461,50 @@ func (db *ProjectDatabase) expireClean() {
 			db.log.Errorf(MsgGlob, "error saving database: %s", err)
 		}
 	}
+}
+
+func (db *ProjectDatabase) reEncryptFiles(app *App) error {
+	db.mutex.Lock()
+	defer db.mutex.Unlock()
+
+	defEncrypt := app.Config.GetDefaultEncryption()
+	if defEncrypt == nil {
+		return nil
+	}
+
+	dbModified := false
+	for _, project := range db.projects {
+		for _, file := range project.Files {
+			if file.Encrypted || file.ReEncryptDate.IsZero() {
+				continue
+			}
+
+			path, err := file.GetLocalPath(app)
+			if err != nil {
+				return err
+			}
+
+			// i'm not happy with this, re-encryption can take a long time and we're locking the mutex :(
+			// (a goroutine is not a solution, because we need to update the database on success only)
+			err = defEncrypt.EncryptFileInPlace(path, app.Rand, app.Log)
+			if err != nil {
+				return err
+			}
+
+			dbModified = true
+			file.Encrypted = true
+			file.ReEncryptDate = time.Time{}
+		}
+	}
+
+	if dbModified {
+		err := db.save()
+		if err != nil {
+			return fmt.Errorf("error saving database: %c", err)
+		}
+	}
+
+	return nil
 }
 
 // ScheduleNoBackupAlerts will schedule NoBackupAlerts task

@@ -1,3 +1,4 @@
+//go:build !dev
 // +build !dev
 
 package server
@@ -39,3 +40,6 @@ const NoBackupAlertSchedule = 1 * time.Hour
 
 // SelfBackupDelay is the delay between each self-backup
 const SelfBackupDelay = 3 * time.Hour
+
+// ReEncryptDelay is the delay after which a file will be re-encrypted after being decrypted
+const ReEncryptDelay = 1 * time.Hour

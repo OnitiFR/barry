@@ -160,6 +160,7 @@ func (app *App) Run() {
 	app.Uploader.Start()
 	go app.ProjectDB.ScheduleExpireFiles()
 	go app.ProjectDB.ScheduleNoBackupAlerts()
+	go app.ProjectDB.ScheduleReEncryptFiles(app)
 	go app.ScheduleScan()
 	go app.ScheduleSelfBackup()
 
@@ -334,6 +335,7 @@ func (app *App) MakeFileAvailable(file *File) (common.APIFileStatus, error) {
 			return status, err
 		}
 		file.Encrypted = false
+		file.ReEncryptDate = time.Now().Add(ReEncryptDelay)
 		app.ProjectDB.Save()
 	}
 
