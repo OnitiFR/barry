@@ -1,7 +1,7 @@
 package common
 
 // ClientVersion of the client (x.y.z format)
-const ClientVersion = "1.9.0"
+const ClientVersion = "1.9.1"
 
 // ServerVersion of the server
 const ServerVersion = "0.20.0"

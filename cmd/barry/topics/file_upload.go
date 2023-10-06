@@ -1,6 +1,7 @@
 package topics
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/OnitiFR/barry/cmd/barry/client"
@@ -28,6 +29,8 @@ var fileUploadloadCmd = &cobra.Command{
 		// if err != nil {
 		// 	log.Fatal(err)
 		// }
+
+		fmt.Printf("uploading %s…\n", args[1])
 
 		call := client.GlobalAPI.NewCall("POST", "/file/upload", map[string]string{
 			"project": args[0],
