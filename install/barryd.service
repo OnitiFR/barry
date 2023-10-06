@@ -7,6 +7,7 @@ User={USER}
 ExecStart={BARRY_BINARY_PATH} -path {BARRY_ETC_DIR}
 Type=simple
 Restart=on-failure
+Environment=TMPDIR={BARRY_TMP_DIR}
 
 [Install]
 WantedBy=multi-user.target
