@@ -13,6 +13,7 @@
 WIP: encryption
 - check all decryption paths! (todo: retrieved, pushed)
 - allow a "per projet" activation? (so we can deploy gradually to test performance hit)
+  - everything is done in the background, so backup process itself is not impacted?
 - test performance! (for big files)
   - encryption, dev workstation: 8.4 GB in 2m11s (~65 MB/s)
   - seems IO bound

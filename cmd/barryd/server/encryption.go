@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/OnitiFR/barry/common"
+	"github.com/c2h5oh/datasize"
 )
 
 type tomlEncryption struct {
@@ -324,7 +325,12 @@ func (enc *EncryptionConfig) EncryptFileInPlace(filename string, rand *rand.Rand
 		return err
 	}
 
-	log.Tracef(MsgGlob, "encryption of %s done in %s, finalizing", filename, time.Since(start))
+	dur := time.Since(start)
+	bps := float64(stat.Size()) / dur.Seconds()
+
+	hr := datasize.ByteSize(bps).HR()
+
+	log.Infof(MsgGlob, "encryption of %s done in %s (%s/s), finalizing", filename, dur, hr)
 	start = time.Now()
 
 	// move the temp file to the original file
