@@ -479,6 +479,10 @@ func (db *ProjectDatabase) reEncryptFiles(app *App) error {
 				continue
 			}
 
+			if time.Now().Before(file.ReEncryptDate) {
+				continue
+			}
+
 			path, err := file.GetLocalPath(app)
 			if err != nil {
 				return err
