@@ -64,7 +64,7 @@ func (up *Uploader) worker(id int) {
 	var err error
 
 	up.Status[id-1] = "idle"
-	up.Log.Tracef(MsgGlob, "worker %d: waiting", id)
+	up.Log.Tracef(MsgGlob, "upload worker %d: waiting", id)
 	upload := <-up.Channel
 
 	// make sure we always fill result chan

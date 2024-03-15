@@ -18,6 +18,12 @@ local_storage_path = "var/storage"
 # warning: minimum required memory = num_uploaders * chunk_size * 2
 num_uploaders = 2
 
+# Maximum files to encrypt at the same time
+# notes:
+# - unlike SSDs, hard drives does not like to jump between files
+# - there's a relation to num_uploaders (upload may be waiting for encryption)
+num_encrypters = 2
+
 # Barry can backup its databases (files & API keys) in any container.
 # Notes: config file is not included, includes sensitive data, keep blank
 # to disable, see -restore flag to restore backuped databases.

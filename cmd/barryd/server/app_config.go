@@ -19,6 +19,7 @@ type AppConfig struct {
 	LocalStoragePath    string
 	TempPath            string
 	NumUploaders        int
+	NumEncrypters       int
 	SelfBackupContainer string
 	Expiration          *ExpirationConfig
 	Swift               *SwiftConfig
@@ -39,6 +40,7 @@ type tomlAppConfig struct {
 	LocalStoragePath    string `toml:"local_storage_path"`
 	TempPath            string `toml:"temp_path"`
 	NumUploaders        int    `toml:"num_uploaders"`
+	NumEncrypters       int    `toml:"num_encrypters"`
 	SelfBackupContainer string `toml:"self_backup_container"`
 	Expiration          *tomlExpiration
 	Swift               *tomlSwiftConfig
@@ -65,6 +67,7 @@ func NewAppConfigFromTomlFile(configPath string, autogenKey bool, rand *rand.Ran
 		QueuePath:        "var/queue",
 		LocalStoragePath: "var/storage",
 		NumUploaders:     2,
+		NumEncrypters:    2,
 		Expiration: &tomlExpiration{
 			Local:  []string{"keep 30 days"},
 			Remote: []string{"keep 30 days", "keep 90 days every 7 files"},
@@ -137,6 +140,11 @@ func NewAppConfigFromTomlFile(configPath string, autogenKey bool, rand *rand.Ran
 		return nil, errors.New("at least one uploader is needed (num_uploaders setting)")
 	}
 	appConfig.NumUploaders = tConfig.NumUploaders
+
+	if tConfig.NumEncrypters < 1 {
+		return nil, errors.New("at least one encrypter is needed (num_encrypters setting)")
+	}
+	appConfig.NumEncrypters = tConfig.NumEncrypters
 
 	appConfig.SelfBackupContainer = tConfig.SelfBackupContainer
 

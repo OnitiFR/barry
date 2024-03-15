@@ -25,6 +25,7 @@ type App struct {
 	ProjectDB   *ProjectDatabase
 	WaitList    *WaitList
 	Uploader    *Uploader
+	Encrypter   *Encrypter
 	Swift       *Swift
 	Log         *Log
 	LogHistory  *LogHistory
@@ -34,8 +35,9 @@ type App struct {
 	Rand        *rand.Rand
 	MuxAPI      *http.ServeMux
 
-	routesAPI map[string][]*Route
-	queueSize int32
+	routesAPI        map[string][]*Route
+	uploadQueueSize  int32
+	encryptQueueSize int32
 }
 
 // Database filenames
@@ -134,7 +136,7 @@ func (app *App) Init(trace bool, pretty bool) error {
 	}
 
 	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift, app.Log)
-
+	app.Encrypter = NewEncrypter(app.Config.NumEncrypters, app.Log, app.Rand)
 	app.Stats = NewStats()
 
 	keyDataBaseFilename, err := app.LocalStoragePath("data", FilenameAPIDB)
@@ -158,6 +160,7 @@ func (app *App) Run() {
 	// start services
 	app.RunKeepAliveStats(KeepAliveDelayDays)
 	app.Uploader.Start()
+	app.Encrypter.Start()
 	go app.ProjectDB.ScheduleExpireFiles()
 	go app.ProjectDB.ScheduleNoBackupAlerts()
 	go app.ProjectDB.ScheduleReEncryptFiles(app)
@@ -251,7 +254,11 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 	if defEncrypt != nil {
 		sourcePath := path.Clean(app.Config.QueuePath + "/" + file.Path)
 
-		err := defEncrypt.EncryptFileInPlace(sourcePath, app.Rand, app.Log)
+		enc := NewEncrypt(defEncrypt, sourcePath)
+		atomic.AddInt32(&app.encryptQueueSize, 1)
+		app.Encrypter.Channel <- enc
+		atomic.AddInt32(&app.encryptQueueSize, -1)
+		err := <-enc.Result
 		if err != nil {
 			return err
 		}
@@ -282,9 +289,9 @@ func (app *App) UploadAndStore(projectName string, file *File) error {
 	upload := NewUpload(projectName, file)
 
 	// send to upload worker, and wait
-	atomic.AddInt32(&app.queueSize, 1)
+	atomic.AddInt32(&app.uploadQueueSize, 1)
 	app.Uploader.Channel <- upload
-	atomic.AddInt32(&app.queueSize, -1)
+	atomic.AddInt32(&app.uploadQueueSize, -1)
 	err := <-upload.Result
 
 	if err != nil {
@@ -441,8 +448,10 @@ func (app *App) Status() (*common.APIStatus, error) {
 	ret.FileCount = dbStats.FileCount
 	ret.TotalFileSize = dbStats.TotalSize
 	ret.TotalFileCost = dbStats.TotalCost
-	ret.Workers = app.Uploader.Status
-	ret.QueueSize = int(atomic.LoadInt32(&app.queueSize))
+	ret.Uploaders = app.Uploader.Status
+	ret.Encrypters = app.Encrypter.Status
+	ret.UploadQueueSize = int(atomic.LoadInt32(&app.uploadQueueSize))
+	ret.EncryptQueueSize = int(atomic.LoadInt32(&app.encryptQueueSize))
 
 	return &ret, nil
 }
