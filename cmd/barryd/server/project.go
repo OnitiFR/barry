@@ -51,16 +51,26 @@ func NewProject(path string, expirationConfig *ExpirationConfig) *Project {
 	return project
 }
 
-// ModTime is the modification time of the project (aka the latest file's ModTime)
-// If the project is empty, result is 0 (see IsZero())
-func (p *Project) ModTime() time.Time {
-	latest := time.Time{}
+// GetLatestFile return the lastest file of the project
+// If the project is empty, result is nil
+func (p *Project) GetLatestFile() *File {
+	var latest *File
 	for _, file := range p.Files {
-		if file.ModTime.After(latest) {
-			latest = file.ModTime
+		if latest == nil || file.ModTime.After(latest.ModTime) {
+			latest = file
 		}
 	}
 	return latest
+}
+
+// ModTime is the modification time of the project (aka the latest file's ModTime)
+// If the project is empty, result is 0 (see IsZero())
+func (p *Project) ModTime() time.Time {
+	latest := p.GetLatestFile()
+	if latest == nil {
+		return time.Time{}
+	}
+	return latest.ModTime
 }
 
 // upgrade Project record to a newest schema version if needed

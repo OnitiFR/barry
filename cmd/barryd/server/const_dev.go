@@ -43,3 +43,9 @@ const SelfBackupDelay = 1 * time.Minute
 
 // ReEncryptDelay is the delay after which a file will be re-encrypted after being decrypted
 const ReEncryptDelay = 1 * time.Minute
+
+// DiffAlertThresholdPerc is the percentage of difference between two files to trigger an alert
+const DiffAlertThresholdPerc = 20
+
+// DiffAlertDisableIfLessThan is the minimum size of a file to be checked for diff alert
+const DiffAlertDisableIfLessThan = 1 * 1024 // 100KB
