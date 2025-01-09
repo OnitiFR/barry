@@ -36,17 +36,19 @@ func (app *App) queueFile(projectName string, file File) {
 	}
 
 	prevFile := project.GetLatestFile()
-	if prevFile != nil && file.Size > DiffAlertDisableIfLessThan {
-		sizeDiff := float64(file.Size-prevFile.Size) / float64(prevFile.Size) * 100
+	if prevFile != nil {
+		if prevFile.Size > DiffAlertDisableIfLessThan || file.Size > DiffAlertDisableIfLessThan {
+			sizeDiff := float64(file.Size-prevFile.Size) / float64(prevFile.Size) * 100
 
-		if math.Abs(sizeDiff) > DiffAlertThresholdPerc {
-			msg := fmt.Sprintf("size diff for '%s' is %.1f%% (was %s, now %s)", file.Path, sizeDiff, datasize.ByteSize(prevFile.Size).HR(), datasize.ByteSize(file.Size).HR())
-			app.Log.Error(projectName, msg)
-			app.AlertSender.Send(&Alert{
-				Type:    AlertTypeBad,
-				Subject: "Warning",
-				Content: msg,
-			})
+			if math.Abs(sizeDiff) > DiffAlertThresholdPerc {
+				msg := fmt.Sprintf("size diff for '%s' is %.1f%% (was %s, now %s)", file.Path, sizeDiff, datasize.ByteSize(prevFile.Size).HR(), datasize.ByteSize(file.Size).HR())
+				app.Log.Error(projectName, msg)
+				app.AlertSender.Send(&Alert{
+					Type:    AlertTypeBad,
+					Subject: "Warning",
+					Content: msg,
+				})
+			}
 		}
 	}
 
