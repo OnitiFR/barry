@@ -55,7 +55,7 @@ func (app *App) queueFile(projectName string, file File) {
 // the file back in the queue.
 func (app *App) unqueueFile(projectName string, file File, errIn error) {
 	errorMsg := fmt.Sprintf("error with '%s': %s, will retry in %s", file.Path, errIn, RetryDelay)
-	app.Log.Errorf(projectName, errorMsg)
+	app.Log.Error(projectName, errorMsg)
 
 	app.AlertSender.Send(&Alert{
 		Type:    AlertTypeBad,
@@ -75,7 +75,7 @@ func (app *App) deleteLocal(file *File, filePath string) {
 	err := os.Remove(filePath)
 	if err != nil {
 		msg := fmt.Sprintf("error deleting local storage file '%s': %s", file.Path, err)
-		app.Log.Errorf(file.ProjectName(), msg)
+		app.Log.Error(file.ProjectName(), msg)
 		app.AlertSender.Send(&Alert{
 			Type:    AlertTypeBad,
 			Subject: "Error",
@@ -102,7 +102,7 @@ func (app *App) deleteRemote(file *File) {
 		// not found? no need to retry → log, exit
 		if err == swift.ObjectNotFound {
 			msg := fmt.Sprintf("remote file '%s' not found", file.Path)
-			app.Log.Errorf(file.ProjectName(), msg)
+			app.Log.Error(file.ProjectName(), msg)
 			app.AlertSender.Send(&Alert{
 				Type:    AlertTypeBad,
 				Subject: "Error",
@@ -113,7 +113,7 @@ func (app *App) deleteRemote(file *File) {
 
 		// log and schedule a retry
 		msg := fmt.Sprintf("error deleting remote file '%s': %s, will retry in %s", file.Path, err, RetryDelay)
-		app.Log.Errorf(file.ProjectName(), msg)
+		app.Log.Error(file.ProjectName(), msg)
 		app.AlertSender.Send(&Alert{
 			Type:    AlertTypeBad,
 			Subject: "Error",

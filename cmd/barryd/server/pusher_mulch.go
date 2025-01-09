@@ -146,7 +146,7 @@ func NewPusherMulch(file *File, path string, expire time.Duration, config *Pushe
 				if err == io.EOF {
 					break
 				}
-				log.Errorf("unable to parse Mulch message: %s", err.Error())
+				log.Errorf(MsgGlob, "unable to parse Mulch message: %s", err.Error())
 			}
 
 			if m.Type == "FAILURE" {

@@ -16,14 +16,14 @@ var emergencyDecryptCmd = &cobra.Command{
 	Short: "Decrypt a file locally using a project key",
 	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := emergencyDecrypt(cmd, args)
+		err := emergencyDecrypt(args)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
 	},
 }
 
-func emergencyDecrypt(cmd *cobra.Command, args []string) error {
+func emergencyDecrypt(args []string) error {
 	infile, err := os.Open(args[0])
 	if err != nil {
 		log.Fatal(err.Error())
