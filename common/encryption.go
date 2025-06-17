@@ -111,3 +111,24 @@ func DecryptFile(infile *os.File, outfile *os.File, keyCallback func(string) ([]
 
 	return nil
 }
+
+// IsFileEncrypted checks if a file is encrypted by looking for the Barry signature
+func IsFileEncrypted(filename string) (bool, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	sig := make([]byte, len(BarrySignature))
+	_, err = file.Read(sig)
+	if err != nil {
+		return false, err
+	}
+
+	if string(sig) == BarrySignature {
+		return true, nil
+	}
+
+	return false, nil
+}

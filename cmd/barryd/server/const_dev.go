@@ -16,7 +16,7 @@ const RetrievedStorageName = "retrieved"
 const LogHistorySize = 5000
 
 // RetryDelay is used when an upload/move failed
-const RetryDelay = 1 * time.Minute
+const RetryDelay = 10 * time.Second
 
 // QueueScanDelay is the delay between consecutive queue scans
 const QueueScanDelay = 3 * time.Second

@@ -251,9 +251,14 @@ func (app *App) MoveFileToStorage(file *File) error {
 // UploadAndStore will upload and store a file
 func (app *App) UploadAndStore(projectName string, file *File) error {
 	defEncrypt := app.Config.GetDefaultEncryption()
-	if defEncrypt != nil {
-		sourcePath := path.Clean(app.Config.QueuePath + "/" + file.Path)
+	sourcePath := path.Clean(app.Config.QueuePath + "/" + file.Path)
 
+	alreadyEncrypted, errE := common.IsFileEncrypted(sourcePath)
+	if errE != nil {
+		return errE
+	}
+
+	if defEncrypt != nil && !alreadyEncrypted {
 		enc := NewEncrypt(defEncrypt, sourcePath)
 		atomic.AddInt32(&app.encryptQueueSize, 1)
 		app.Encrypter.Channel <- enc
