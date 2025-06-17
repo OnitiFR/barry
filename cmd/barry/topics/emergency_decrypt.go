@@ -12,8 +12,8 @@ import (
 
 // emergencyDecryptCmd represents the file command
 var emergencyDecryptCmd = &cobra.Command{
-	Use:   "decrypt <encrypted-file> <output-file> <base64-key>",
-	Short: "Decrypt a file locally using a project key",
+	Use:   "decrypt <encrypted-file> <output-file> <base64-key-file>",
+	Short: "Decrypt a file locally using a key file (base64-encoded)",
 	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := emergencyDecrypt(args)
@@ -44,9 +44,13 @@ func emergencyDecrypt(args []string) error {
 		}
 	}()
 
-	key, err := base64.StdEncoding.DecodeString(args[2])
+	keyFileData, err := os.ReadFile(args[2])
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read key file: %w", err)
+	}
+	key, err := base64.StdEncoding.DecodeString(string(keyFileData))
+	if err != nil {
+		return fmt.Errorf("failed to decode base64 key: %w", err)
 	}
 
 	err = common.DecryptFile(infile, outfile, func(keyName string) ([]byte, error) {
