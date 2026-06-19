@@ -14,13 +14,6 @@ import (
 	"github.com/ncw/swift/v2"
 )
 
-// Possible object availability
-const (
-	SwiftObjectSealed    = "sealed"
-	SwiftObjectUnsealing = "unsealing"
-	SwiftObjectUnsealed  = "unsealed"
-)
-
 type tomlSwiftConfig struct {
 	UserName  string            `toml:"username"`
 	APIKey    string            `toml:"api_key"`
@@ -40,16 +33,19 @@ type SwiftConfig struct {
 	ChunckSize uint64
 }
 
-// Swift host connection and configuration
+// Swift host connection and configuration. It implements the Backend
+// interface. QueuePath is the app-level queue path (source of uploads).
 type Swift struct {
-	Config *AppConfig
-	Conn   swift.Connection
+	Config    *SwiftConfig
+	QueuePath string
+	Conn      swift.Connection
 }
 
-// NewSwift will create a new Swift instance from config
-func NewSwift(config *AppConfig) (*Swift, error) {
+// NewSwift will create a new Swift instance from a connection config
+func NewSwift(config *SwiftConfig, queuePath string) (*Swift, error) {
 	swift := &Swift{
-		Config: config,
+		Config:    config,
+		QueuePath: queuePath,
 	}
 	err := swift.connect()
 	if err != nil {
@@ -62,6 +58,14 @@ func NewSwift(config *AppConfig) (*Swift, error) {
 // NewSwiftConfigFromToml will check tomlSwiftConfig and create a SwiftConfig
 func NewSwiftConfigFromToml(tConfig *tomlSwiftConfig) (*SwiftConfig, error) {
 	config := &SwiftConfig{}
+
+	// defaults (per-connection, since [[storage]] is an array)
+	if tConfig.Domain == "" {
+		tConfig.Domain = "Default"
+	}
+	if tConfig.ChunkSize == 0 {
+		tConfig.ChunkSize = 512 * datasize.MB
+	}
 
 	if tConfig.UserName == "" {
 		return nil, errors.New("swift username setting cannot be empty")
@@ -99,11 +103,11 @@ func NewSwiftConfigFromToml(tConfig *tomlSwiftConfig) (*SwiftConfig, error) {
 // Connect and authenticate to the Swift API
 func (s *Swift) connect() error {
 	s.Conn = swift.Connection{
-		UserName: s.Config.Swift.UserName,
-		ApiKey:   s.Config.Swift.APIKey,
-		AuthUrl:  s.Config.Swift.AuthURL,
-		Domain:   s.Config.Swift.Domain,
-		Region:   s.Config.Swift.Region,
+		UserName: s.Config.UserName,
+		ApiKey:   s.Config.APIKey,
+		AuthUrl:  s.Config.AuthURL,
+		Domain:   s.Config.Domain,
+		Region:   s.Config.Region,
 	}
 
 	err := s.Conn.Authenticate(context.Background())
@@ -134,7 +138,7 @@ func (s *Swift) CheckContainer(name string) error {
 // atomically updated with the number of bytes read from the source file,
 // so callers can track upload progress.
 func (s *Swift) Upload(file *File, written *int64) error {
-	sourcePath := path.Clean(s.Config.QueuePath + "/" + file.Path)
+	sourcePath := path.Clean(s.QueuePath + "/" + file.Path)
 	source, err := os.Open(sourcePath)
 	if err != nil {
 		return err
@@ -158,7 +162,7 @@ func (s *Swift) Upload(file *File, written *int64) error {
 	dest, err := s.Conn.DynamicLargeObjectCreate(context.Background(), &swift.LargeObjectOpts{
 		Container:  file.Container,
 		ObjectName: file.Path,
-		ChunkSize:  int64(s.Config.Swift.ChunckSize),
+		ChunkSize:  int64(s.Config.ChunckSize),
 		// NoBuffer:   true,
 		// Headers: swift.Headers{
 		// 	"X-Delete-After": strconv.Itoa(deleteAfterSeconds),
@@ -185,10 +189,10 @@ func (s *Swift) Delete(file *File) error {
 	return nil
 }
 
-// GetObjetAvailability returns availability, explained with two values:
+// ObjectAvailability returns availability, explained with two values:
 // - state (sealed, unsealing, unsealed)
 // - delay in seconds (0 meaning that is file is ready to be downloaded)
-func (s *Swift) GetObjetAvailability(container string, path string) (string, time.Duration, error) {
+func (s *Swift) ObjectAvailability(container string, path string) (string, time.Duration, error) {
 	ctx := context.Background()
 	_, headers, err := s.Conn.Object(ctx, container, path)
 	if err != nil {
@@ -210,15 +214,15 @@ func (s *Swift) GetObjetAvailability(container string, path string) (string, tim
 
 		_, isDLO := headers["X-Object-Manifest"]
 		if isDLO && size == 0 {
-			return SwiftObjectUnsealing, 10 * time.Second, nil // wait a bit
+			return ObjectUnsealing, 10 * time.Second, nil // wait a bit
 		}
-		return SwiftObjectUnsealed, 0, nil
+		return ObjectUnsealed, 0, nil
 	}
 
 	switch state {
-	case SwiftObjectSealed:
+	case ObjectSealed:
 		return state, 0, nil
-	case SwiftObjectUnsealing:
+	case ObjectUnsealing:
 		delay, delayExists := headers["X-Ovh-Retrieval-Delay"]
 		if !delayExists {
 			return "", 0, fmt.Errorf("can't find X-Ovh-Retrieval-Delay for unsealing path %s", path)
@@ -229,7 +233,7 @@ func (s *Swift) GetObjetAvailability(container string, path string) (string, tim
 		}
 		d := time.Duration(secs) * time.Second
 		return state, time.Duration(d), nil
-	case SwiftObjectUnsealed:
+	case ObjectUnsealed:
 		return state, 0, nil
 	default:
 		return state, 0, fmt.Errorf("unknown state '%s' for path %s", state, path)
@@ -253,16 +257,16 @@ func (s *Swift) Unseal(container string, path string) (time.Duration, error) {
 
 	// TooManyRequests = sealed
 	if err == swift.TooManyRequests {
-		state, delay, err := s.GetObjetAvailability(container, path)
+		state, delay, err := s.ObjectAvailability(container, path)
 		if err != nil {
 			return 0, err
 		}
 		switch state {
-		case SwiftObjectSealed:
+		case ObjectSealed:
 			return 0, fmt.Errorf("unable to unseal path %s", path)
-		case SwiftObjectUnsealing:
+		case ObjectUnsealing:
 			return delay, nil
-		case SwiftObjectUnsealed:
+		case ObjectUnsealed:
 			// immediate unseal? (never seen in the wild :)
 			return 0, nil
 		default:
@@ -276,12 +280,12 @@ func (s *Swift) Unseal(container string, path string) (time.Duration, error) {
 
 // ObjectOpen a Swift Object, returning a ReadCloser
 func (s *Swift) ObjectOpen(container string, path string) (io.ReadCloser, error) {
-	availability, _, err := s.GetObjetAvailability(container, path)
+	availability, _, err := s.ObjectAvailability(container, path)
 	if err != nil {
 		return nil, err
 	}
 
-	if availability != SwiftObjectUnsealed {
+	if availability != ObjectUnsealed {
 		return nil, errors.New("file is not unsealed")
 	}
 

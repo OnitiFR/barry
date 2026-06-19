@@ -110,7 +110,7 @@ func (app *App) deleteRemote(file *File) {
 	for {
 		app.Log.Tracef(file.ProjectName(), "deleting remote storage file '%s'", file.Path)
 
-		err := app.Swift.Delete(file)
+		err := app.Storage.Delete(file)
 
 		// no error? log and exit
 		if err == nil {

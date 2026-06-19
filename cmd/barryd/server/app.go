@@ -26,7 +26,7 @@ type App struct {
 	WaitList    *WaitList
 	Uploader    *Uploader
 	Encrypter   *Encrypter
-	Swift       *Swift
+	Storage     *Storage
 	Log         *Log
 	LogHistory  *LogHistory
 	AlertSender *AlertSender
@@ -121,21 +121,23 @@ func (app *App) Init(trace bool, pretty bool) error {
 	}
 	app.WaitList = waitList
 
-	app.Swift, err = NewSwift(app.Config)
+	app.Storage, err = NewStorage(app.Config)
 	if err != nil {
 		return err
 	}
-	app.Log.Trace(MsgGlob, "Swift connected")
+	app.Log.Trace(MsgGlob, "storage connected")
 
-	for _, container := range app.Config.Containers {
-		err = app.Swift.CheckContainer(container.Name)
-		if err != nil {
-			return err
+	for _, storage := range app.Config.Storages {
+		for _, container := range storage.Containers {
+			err = app.Storage.CheckContainer(container)
+			if err != nil {
+				return err
+			}
+			app.Log.Tracef(MsgGlob, "container '%s' (storage '%s') is OK", container, storage.Name)
 		}
-		app.Log.Tracef(MsgGlob, "container '%s' is OK", container.Name)
 	}
 
-	app.Uploader = NewUploader(app.Config.NumUploaders, app.Swift, app.Log)
+	app.Uploader = NewUploader(app.Config.NumUploaders, app.Storage, app.Log)
 	app.Encrypter = NewEncrypter(app.Config.NumEncrypters, app.Log, app.Rand)
 	app.Stats = NewStats()
 
@@ -395,20 +397,20 @@ func (app *App) makeFileLocal(file *File) (common.APIFileStatus, error) {
 	}
 
 	// check remote status
-	availability, eta, err := app.Swift.GetObjetAvailability(file.Container, file.Path)
+	availability, eta, err := app.Storage.ObjectAvailability(file.Container, file.Path)
 	if err != nil {
 		return status, err
 	}
 
 	switch availability {
-	case SwiftObjectUnsealing:
+	case ObjectUnsealing:
 		status.Status = common.APIFileStatusUnsealing
 		status.ETA = eta
 		return status, nil
 
-	case SwiftObjectSealed:
+	case ObjectSealed:
 		app.Log.Infof(file.ProjectName(), "unsealing '%s'", file.Path)
-		eta, err := app.Swift.Unseal(file.Container, file.Path)
+		eta, err := app.Storage.Unseal(file.Container, file.Path)
 		if err != nil {
 			return status, err
 		}
@@ -417,14 +419,14 @@ func (app *App) makeFileLocal(file *File) (common.APIFileStatus, error) {
 		status.ETA = eta
 		return status, nil
 
-	case SwiftObjectUnsealed:
+	case ObjectUnsealed:
 		// TODO: allow two files from two different projects to be retrieved
 		// even if they have the same name!
 		path, err := app.LocalStoragePath(RetrievedStorageName, file.Filename)
 		if err != nil {
 			return status, err
 		}
-		file.retriever, err = NewRetriever(file, app.Swift, path)
+		file.retriever, err = NewRetriever(file, app.Storage, path)
 		if err != nil {
 			return status, err
 		}
@@ -470,7 +472,7 @@ func (app *App) selfRestoreFile(dbFile string, localPath string) error {
 		return err
 	}
 	defer file.Close()
-	err = app.Swift.FileGetContent(app.Config.SelfBackupContainer, path, file)
+	err = app.Storage.FileGetContent(app.Config.SelfBackupContainer, path, file)
 	if err != nil {
 		return err
 	}
@@ -501,7 +503,7 @@ func (app *App) selfBackup() error {
 	if err != nil {
 		return err
 	}
-	err = app.Swift.FilePutContent(app.Config.SelfBackupContainer, ".barry/"+FilenameAPIDB, keysBuff)
+	err = app.Storage.FilePutContent(app.Config.SelfBackupContainer, ".barry/"+FilenameAPIDB, keysBuff)
 	if err != nil {
 		return err
 	}
@@ -512,7 +514,7 @@ func (app *App) selfBackup() error {
 	if err != nil {
 		return err
 	}
-	err = app.Swift.FilePutContent(app.Config.SelfBackupContainer, ".barry/"+FilenameProjectDB, projectsBuff)
+	err = app.Storage.FilePutContent(app.Config.SelfBackupContainer, ".barry/"+FilenameProjectDB, projectsBuff)
 	if err != nil {
 		return err
 	}

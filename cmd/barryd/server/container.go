@@ -19,17 +19,17 @@ type tomlContainer struct {
 	Cost string
 }
 
-// NewContainersConfigFromToml return a list of Container based on TOML [[container]] settings
+// NewContainersConfigFromToml return a list of Container based on TOML [[upload_container]] settings
 func NewContainersConfigFromToml(tContainers []*tomlContainer) ([]*Container, error) {
 	if len(tContainers) == 0 {
-		return nil, errors.New("you must provide a least one [[container]] config")
+		return nil, errors.New("you must provide a least one [[upload_container]] config")
 	}
 
 	containers := make([]*Container, 0)
 
 	for _, tContainer := range tContainers {
 		if tContainer.Name == "" {
-			return nil, errors.New("container must have a 'name' setting")
+			return nil, errors.New("upload_container must have a 'name' setting")
 		}
 
 		if tContainer.Cost == "" {

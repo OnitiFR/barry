@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/c2h5oh/datasize"
 )
 
 // AppConfig describes the general configuration of an App
@@ -22,7 +21,7 @@ type AppConfig struct {
 	NumEncrypters       int
 	SelfBackupContainer string
 	Expiration          *ExpirationConfig
-	Swift               *SwiftConfig
+	Storages            []*StorageConfig
 	API                 *APIConfig
 	Containers          []*Container
 	Pushers             map[string]*PusherConfig
@@ -43,9 +42,9 @@ type tomlAppConfig struct {
 	NumEncrypters       int    `toml:"num_encrypters"`
 	SelfBackupContainer string `toml:"self_backup_container"`
 	Expiration          *tomlExpiration
-	Swift               *tomlSwiftConfig
+	Storages            []*tomlStorage         `toml:"storage"`
 	API                 *tomlAPIConfig
-	Containers          []*tomlContainer       `toml:"container"`
+	Containers          []*tomlContainer       `toml:"upload_container"`
 	PushDestinations    []*tomlPushDestination `toml:"push_destination"`
 	Encryptions         []*tomlEncryption      `toml:"encryption"`
 }
@@ -71,10 +70,6 @@ func NewAppConfigFromTomlFile(configPath string, autogenKey bool, rand *rand.Ran
 		Expiration: &tomlExpiration{
 			Local:  []string{"keep 30 days"},
 			Remote: []string{"keep 30 days", "keep 90 days every 7 files"},
-		},
-		Swift: &tomlSwiftConfig{
-			Domain:    "Default",
-			ChunkSize: 512 * datasize.MB,
 		},
 		API: &tomlAPIConfig{
 			Listen: ":8787",
@@ -170,7 +165,7 @@ func NewAppConfigFromTomlFile(configPath string, autogenKey bool, rand *rand.Ran
 
 	// spew.Dump(appConfig.Expiration)
 
-	appConfig.Swift, err = NewSwiftConfigFromToml(tConfig.Swift)
+	appConfig.Storages, err = NewStoragesConfigFromToml(tConfig.Storages)
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +173,23 @@ func NewAppConfigFromTomlFile(configPath string, autogenKey bool, rand *rand.Ran
 	appConfig.Containers, err = NewContainersConfigFromToml(tConfig.Containers)
 	if err != nil {
 		return nil, err
+	}
+
+	// cross-validation: every upload_container (and self_backup_container)
+	// must be reachable through one of the declared [[storage]] connections.
+	reachable := make(map[string]bool)
+	for _, storage := range appConfig.Storages {
+		for _, container := range storage.Containers {
+			reachable[container] = true
+		}
+	}
+	for _, container := range appConfig.Containers {
+		if !reachable[container.Name] {
+			return nil, fmt.Errorf("upload_container '%s' is not listed in any [[storage]] containers", container.Name)
+		}
+	}
+	if appConfig.SelfBackupContainer != "" && !reachable[appConfig.SelfBackupContainer] {
+		return nil, fmt.Errorf("self_backup_container '%s' is not listed in any [[storage]] containers", appConfig.SelfBackupContainer)
 	}
 
 	appConfig.Pushers, err = NewPushersConfigFromToml(tConfig.PushDestinations)

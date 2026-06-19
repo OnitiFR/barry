@@ -58,28 +58,54 @@ remote = [
 ]
 
 
-# Swift API settings, currently tested only with auth V3 style, older
-# versions and environment reading are in the TODO.
-[swift]
-username = "***"
-api_key = "***" # "password" in older auth
-auth_url = "***"
-domain = "Default" # specific to V3 auth
-region = "***"
-chunk_size = "512M" # large objects are split
+# Storage connections.
+# Each [[storage]] is a named, typed connection (currently only "swift").
+# Backend-specific credentials live in a sub-table ([storage.swift]).
+# "containers" lists every container REACHABLE through this connection, both
+# upload targets and old read-only containers that still hold backups.
+# You can declare several connections (different regions, accounts or even
+# providers); a container belongs to exactly one connection.
+#
+# Swift: currently tested only with auth V3 style, older versions and
+# environment reading are in the TODO.
+[[storage]]
+name = "ovh-gra"
+type = "swift"
+containers = ["backup_hot", "backup_cold"]
+  [storage.swift]
+  username = "***"
+  api_key = "***" # "password" in older auth
+  auth_url = "***"
+  domain = "Default" # specific to V3 auth
+  region = "GRA"
+  chunk_size = "512M" # large objects are split
+
+# Example of a second connection in another region (uncomment to use):
+#[[storage]]
+#name = "ovh-sbg"
+#type = "swift"
+#containers = ["archive_sbg"]
+#  [storage.swift]
+#  username = "***"
+#  api_key = "***"
+#  auth_url = "***"
+#  region = "SBG"
 
 
-# Storage containers. (Barry will check if related _segments containers exists, too)
-# Each container can have a cost expression, so barry can decide where to
-# put a file to get the lowest cost. Default cost is 0.
+# Upload containers. (Barry will check if related _segments containers exists, too)
+# Declaring a container here "promotes" it to an upload target with a cost
+# expression, so barry can decide where to put a file to get the lowest cost.
+# A container reachable via [[storage]] but NOT declared here stays read-only
+# (retrieve / delete only). Each name must appear in a [[storage]] containers
+# list. Default cost is 0 (free).
 # Available variables for cost expression:
 # size (in bytes), size_KB, size_MB, size_GB, size_TB
 # duration_secs, duration_secs, duration_hours, duration_days, duration_months, duration_years (storage duration)
-[[container]]
+[[upload_container]]
 name = "backup_hot"
 cost = "0.01 * size_GB * duration_months"
 
-[[container]]
+[[upload_container]]
 name = "backup_cold"
 cost = "(0.01 * size_GB) + (0.002 * size_GB * duration_months)"
 

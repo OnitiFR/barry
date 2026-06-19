@@ -53,7 +53,7 @@ type Upload struct {
 type Uploader struct {
 	NumWorkers int
 	Channel    chan *Upload
-	Swift      *Swift
+	Storage    *Storage
 	Log        *Log
 
 	statusMutex sync.Mutex
@@ -61,11 +61,11 @@ type Uploader struct {
 }
 
 // NewUploader initialize a new instance
-func NewUploader(numWorkers int, swift *Swift, log *Log) *Uploader {
+func NewUploader(numWorkers int, storage *Storage, log *Log) *Uploader {
 	return &Uploader{
 		NumWorkers: numWorkers,
 		Channel:    make(chan *Upload),
-		Swift:      swift,
+		Storage:    storage,
 		Log:        log,
 		status:     make([]string, numWorkers),
 	}
@@ -184,7 +184,7 @@ func (up *Uploader) worker(id int) {
 		}
 	}()
 
-	err = up.Swift.Upload(upload.File, &written)
+	err = up.Storage.Upload(upload.File, &written)
 	close(done)
 	<-finished
 	if err != nil {

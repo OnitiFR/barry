@@ -17,13 +17,13 @@ type Retriever struct {
 	startedAt      time.Time
 	totalSize      int64
 	downloadedSize int64
-	swiftFile      io.ReadCloser
+	remoteFile     io.ReadCloser
 	localFile      *os.File
 	mutex          sync.Mutex
 }
 
 // NewRetriever create a new Retriever
-func NewRetriever(file *File, swift *Swift, outputFilename string) (*Retriever, error) {
+func NewRetriever(file *File, backend Backend, outputFilename string) (*Retriever, error) {
 	res := &Retriever{
 		startedAt: time.Now(),
 		totalSize: file.Size,
@@ -31,14 +31,14 @@ func NewRetriever(file *File, swift *Swift, outputFilename string) (*Retriever, 
 	}
 
 	var err error
-	res.swiftFile, err = swift.ObjectOpen(file.Container, file.Path)
+	res.remoteFile, err = backend.ObjectOpen(file.Container, file.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	res.localFile, err = os.Create(outputFilename)
 	if err != nil {
-		res.swiftFile.Close()
+		res.remoteFile.Close()
 		return nil, err
 	}
 
@@ -47,7 +47,7 @@ func NewRetriever(file *File, swift *Swift, outputFilename string) (*Retriever, 
 }
 
 func (r *Retriever) close(err error) {
-	r.swiftFile.Close()
+	r.remoteFile.Close()
 	r.localFile.Close()
 
 	r.mutex.Lock()
@@ -60,7 +60,7 @@ func (r *Retriever) close(err error) {
 func (r *Retriever) copy(bufferSize int64) {
 	buf := make([]byte, bufferSize)
 	for {
-		n, err := r.swiftFile.Read(buf)
+		n, err := r.remoteFile.Read(buf)
 		if err != nil && err != io.EOF {
 			r.close(err)
 		}
