@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 )
 
 type Encrypt struct {
@@ -19,7 +20,9 @@ type Encrypter struct {
 	Channel    chan *Encrypt
 	Log        *Log
 	Rand       *rand.Rand
-	Status     []string
+
+	statusMutex sync.Mutex
+	status      []string
 }
 
 // NewEncrypter initialize a new instance
@@ -29,8 +32,24 @@ func NewEncrypter(numWorkers int, log *Log, rand *rand.Rand) *Encrypter {
 		Channel:    make(chan *Encrypt),
 		Log:        log,
 		Rand:       rand,
-		Status:     make([]string, numWorkers),
+		status:     make([]string, numWorkers),
 	}
+}
+
+// setStatus updates the status of worker id (1-based) in a concurrency-safe way
+func (enc *Encrypter) setStatus(id int, status string) {
+	enc.statusMutex.Lock()
+	enc.status[id-1] = status
+	enc.statusMutex.Unlock()
+}
+
+// StatusSnapshot returns a copy of all workers status, safe to read concurrently
+func (enc *Encrypter) StatusSnapshot() []string {
+	enc.statusMutex.Lock()
+	defer enc.statusMutex.Unlock()
+	out := make([]string, len(enc.status))
+	copy(out, enc.status)
+	return out
 }
 
 // NewEncrypt initialize a new instance
@@ -56,7 +75,7 @@ func (enc *Encrypter) Start() {
 func (enc *Encrypter) worker(id int) {
 	var err error
 
-	enc.Status[id-1] = "idle"
+	enc.setStatus(id, "idle")
 	enc.Log.Tracef(MsgGlob, "encryption worker %d: waiting", id)
 	encrypt := <-enc.Channel
 
@@ -65,7 +84,7 @@ func (enc *Encrypter) worker(id int) {
 		encrypt.Result <- err
 	}()
 
-	enc.Status[id-1] = fmt.Sprintf("encrypting %s", encrypt.Filename)
+	enc.setStatus(id, fmt.Sprintf("encrypting %s", encrypt.Filename))
 	enc.Log.Infof(MsgGlob, "worker %d: encrypting %s", id, encrypt.Filename)
 	err = encrypt.EncryptionConfig.EncryptFileInPlace(encrypt.Filename, enc.Rand, enc.Log)
 	if err != nil {

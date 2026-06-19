@@ -130,14 +130,21 @@ func (s *Swift) CheckContainer(name string) error {
 	return nil
 }
 
-// Upload a local file to Swift provider
-func (s *Swift) Upload(file *File) error {
+// Upload a local file to Swift provider. If written is not nil, it is
+// atomically updated with the number of bytes read from the source file,
+// so callers can track upload progress.
+func (s *Swift) Upload(file *File, written *int64) error {
 	sourcePath := path.Clean(s.Config.QueuePath + "/" + file.Path)
 	source, err := os.Open(sourcePath)
 	if err != nil {
 		return err
 	}
 	defer source.Close()
+
+	var reader io.Reader = source
+	if written != nil {
+		reader = &progressReader{reader: source, written: written}
+	}
 
 	// Currently, with Openstack object expiration + ncw/swift, only the
 	// manifest will expire, not the segments. We now schedule deletion on
@@ -162,7 +169,7 @@ func (s *Swift) Upload(file *File) error {
 	}
 	defer dest.Close()
 
-	_, err = io.Copy(dest, source)
+	_, err = io.Copy(dest, reader)
 	if err != nil {
 		return err
 	}

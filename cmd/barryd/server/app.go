@@ -453,8 +453,8 @@ func (app *App) Status() (*common.APIStatus, error) {
 	ret.FileCount = dbStats.FileCount
 	ret.TotalFileSize = dbStats.TotalSize
 	ret.TotalFileCost = dbStats.TotalCost
-	ret.Uploaders = app.Uploader.Status
-	ret.Encrypters = app.Encrypter.Status
+	ret.Uploaders = app.Uploader.StatusSnapshot()
+	ret.Encrypters = app.Encrypter.StatusSnapshot()
 	ret.UploadQueueSize = int(atomic.LoadInt32(&app.uploadQueueSize))
 	ret.EncryptQueueSize = int(atomic.LoadInt32(&app.encryptQueueSize))
 
