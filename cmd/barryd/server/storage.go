@@ -22,13 +22,21 @@ func NewStorage(config *AppConfig) (*Storage, error) {
 		containerBackend: make(map[string]Backend),
 	}
 
+	// explicit segment container names, declared on [[upload_container]]
+	segmentOverrides := make(map[string]string)
+	for _, container := range config.Containers {
+		if container.SegmentContainer != "" {
+			segmentOverrides[container.Name] = container.SegmentContainer
+		}
+	}
+
 	for _, sc := range config.Storages {
 		var backend Backend
 		var err error
 
 		switch sc.Type {
 		case StorageTypeSwift:
-			backend, err = NewSwift(sc.Swift, config.QueuePath)
+			backend, err = NewSwift(sc.Swift, config.QueuePath, segmentOverrides)
 		default:
 			return nil, fmt.Errorf("storage '%s': unknown type '%s'", sc.Name, sc.Type)
 		}

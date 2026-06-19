@@ -92,18 +92,26 @@ containers = ["backup_hot", "backup_cold"]
 #  region = "SBG"
 
 
-# Upload containers. (Barry will check if related _segments containers exists, too)
+# Upload containers.
 # Declaring a container here "promotes" it to an upload target with a cost
 # expression, so barry can decide where to put a file to get the lowest cost.
 # A container reachable via [[storage]] but NOT declared here stays read-only
 # (retrieve / delete only). Each name must appear in a [[storage]] containers
 # list. Default cost is 0 (free).
+#
+# Large objects are split into segments stored in a separate container. By
+# default barry uses "<name>_segments" and checks it exists. Some providers
+# (e.g. OVH) no longer allow "_" in container names: set segments_container
+# explicitly in that case. Read/delete of existing backups is unaffected (the
+# real segment path is read from each object manifest).
+#
 # Available variables for cost expression:
 # size (in bytes), size_KB, size_MB, size_GB, size_TB
 # duration_secs, duration_secs, duration_hours, duration_days, duration_months, duration_years (storage duration)
 [[upload_container]]
 name = "backup_hot"
 cost = "0.01 * size_GB * duration_months"
+#segments_container = "backup-hot-segments"
 
 [[upload_container]]
 name = "backup_cold"

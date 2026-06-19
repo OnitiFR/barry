@@ -12,11 +12,15 @@ import (
 type Container struct {
 	Name     string
 	CostExpr *govaluate.EvaluableExpression
+	// SegmentContainer is the container hosting large-object segments. Empty
+	// means the default "<name>_segments" convention is used.
+	SegmentContainer string
 }
 
 type tomlContainer struct {
-	Name string
-	Cost string
+	Name             string
+	Cost             string
+	SegmentContainer string `toml:"segments_container"`
 }
 
 // NewContainersConfigFromToml return a list of Container based on TOML [[upload_container]] settings
@@ -42,8 +46,9 @@ func NewContainersConfigFromToml(tContainers []*tomlContainer) ([]*Container, er
 		}
 
 		container := &Container{
-			Name:     tContainer.Name,
-			CostExpr: expr,
+			Name:             tContainer.Name,
+			CostExpr:         expr,
+			SegmentContainer: tContainer.SegmentContainer,
 		}
 
 		_, err = container.Cost(1, time.Second)

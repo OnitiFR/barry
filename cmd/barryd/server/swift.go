@@ -39,13 +39,17 @@ type Swift struct {
 	Config    *SwiftConfig
 	QueuePath string
 	Conn      swift.Connection
+	// segmentOverrides maps a container name to an explicit segment container
+	// name. Empty/missing means the default "<name>_segments" convention.
+	segmentOverrides map[string]string
 }
 
 // NewSwift will create a new Swift instance from a connection config
-func NewSwift(config *SwiftConfig, queuePath string) (*Swift, error) {
+func NewSwift(config *SwiftConfig, queuePath string, segmentOverrides map[string]string) (*Swift, error) {
 	swift := &Swift{
-		Config:    config,
-		QueuePath: queuePath,
+		Config:           config,
+		QueuePath:        queuePath,
+		segmentOverrides: segmentOverrides,
 	}
 	err := swift.connect()
 	if err != nil {
@@ -53,6 +57,15 @@ func NewSwift(config *SwiftConfig, queuePath string) (*Swift, error) {
 	}
 
 	return swift, nil
+}
+
+// segmentContainer returns the segment container name for a data container:
+// the explicit override if set, otherwise the default "<name>_segments".
+func (s *Swift) segmentContainer(container string) string {
+	if seg := s.segmentOverrides[container]; seg != "" {
+		return seg
+	}
+	return container + "_segments"
 }
 
 // NewSwiftConfigFromToml will check tomlSwiftConfig and create a SwiftConfig
@@ -125,7 +138,7 @@ func (s *Swift) CheckContainer(name string) error {
 		return fmt.Errorf("container '%s' does not exists", name)
 	}
 
-	segmentsContainer := name + "_segments"
+	segmentsContainer := s.segmentContainer(name)
 	_, _, err = s.Conn.Container(ctx, segmentsContainer)
 	if err != nil {
 		return fmt.Errorf("you must create container '%s' manually, a different pricing may be used if created via the API with default policy", segmentsContainer)
@@ -160,9 +173,10 @@ func (s *Swift) Upload(file *File, written *int64) error {
 	// make things very unstable with OVH. Back to memory-hungry-mode.
 
 	dest, err := s.Conn.DynamicLargeObjectCreate(context.Background(), &swift.LargeObjectOpts{
-		Container:  file.Container,
-		ObjectName: file.Path,
-		ChunkSize:  int64(s.Config.ChunckSize),
+		Container:        file.Container,
+		ObjectName:       file.Path,
+		ChunkSize:        int64(s.Config.ChunckSize),
+		SegmentContainer: s.segmentContainer(file.Container),
 		// NoBuffer:   true,
 		// Headers: swift.Headers{
 		// 	"X-Delete-After": strconv.Itoa(deleteAfterSeconds),
