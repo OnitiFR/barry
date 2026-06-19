@@ -130,12 +130,17 @@ func (s *Swift) connect() error {
 	return nil
 }
 
-// CheckContainer will returnb nil if container and container_segments exists
-func (s *Swift) CheckContainer(name string) error {
+// CheckContainer will return nil if the container exists. When checkSegments
+// is true, the related segments container must exist too (needed for upload).
+func (s *Swift) CheckContainer(name string, checkSegments bool) error {
 	ctx := context.Background()
 	_, _, err := s.Conn.Container(ctx, name)
 	if err != nil {
 		return fmt.Errorf("container '%s' does not exists", name)
+	}
+
+	if !checkSegments {
+		return nil
 	}
 
 	segmentsContainer := s.segmentContainer(name)

@@ -62,13 +62,14 @@ func (s *Storage) backendForContainer(container string) (Backend, error) {
 	return backend, nil
 }
 
-// CheckContainer returns nil if the container is usable
-func (s *Storage) CheckContainer(name string) error {
+// CheckContainer returns nil if the container is usable. checkSegments
+// requires the segment container to exist too (upload targets only).
+func (s *Storage) CheckContainer(name string, checkSegments bool) error {
 	backend, err := s.backendForContainer(name)
 	if err != nil {
 		return err
 	}
-	return backend.CheckContainer(name)
+	return backend.CheckContainer(name, checkSegments)
 }
 
 // Upload a local file to the backend hosting file.Container

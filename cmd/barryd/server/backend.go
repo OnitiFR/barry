@@ -21,8 +21,11 @@ const (
 // Backend is a storage backend (Swift, S3, …) able to store and retrieve
 // files in named containers. Swift is the first implementation.
 type Backend interface {
-	// CheckContainer returns nil if the container is usable
-	CheckContainer(name string) error
+	// CheckContainer returns nil if the container is usable. When
+	// checkSegments is true (upload targets), the segment container must
+	// exist too; read-only containers don't need it (segments are resolved
+	// from each object manifest at retrieve/delete time).
+	CheckContainer(name string, checkSegments bool) error
 
 	// Upload a local file. If written is not nil, it is atomically updated
 	// with the number of bytes read from the source file (progress tracking).

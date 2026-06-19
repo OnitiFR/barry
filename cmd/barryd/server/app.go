@@ -127,9 +127,16 @@ func (app *App) Init(trace bool, pretty bool) error {
 	}
 	app.Log.Trace(MsgGlob, "storage connected")
 
+	// upload targets need their segment container to exist; read-only
+	// containers don't (segments are resolved from each object manifest).
+	uploadContainers := make(map[string]bool)
+	for _, container := range app.Config.Containers {
+		uploadContainers[container.Name] = true
+	}
+
 	for _, storage := range app.Config.Storages {
 		for _, container := range storage.Containers {
-			err = app.Storage.CheckContainer(container)
+			err = app.Storage.CheckContainer(container, uploadContainers[container])
 			if err != nil {
 				return err
 			}
