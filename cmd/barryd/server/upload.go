@@ -26,10 +26,6 @@ func (pr *progressReader) Read(p []byte) (int, error) {
 // statusRefreshInterval is how often the upload progress status is refreshed
 const statusRefreshInterval = 5 * time.Second
 
-// statusSpeedSmoothing is the weight (0..1) given to the latest measured speed
-// in the exponential moving average. Higher = more reactive, lower = smoother.
-const statusSpeedSmoothing = 0.3
-
 // statusMaxETA caps the displayed ETA: above it we consider the estimate
 // meaningless (and avoid time.Duration overflow on near-zero speeds).
 const statusMaxETA = 30 * 24 * time.Hour
@@ -134,31 +130,23 @@ func (up *Uploader) worker(id int) {
 		ticker := time.NewTicker(statusRefreshInterval)
 		defer ticker.Stop()
 
-		lastTime := time.Now()
-		var lastWritten int64
-		var speed float64 // exponential moving average, bytes/sec
+		startTime := time.Now()
 
 		for {
 			select {
 			case <-done:
 				return
 			case <-ticker.C:
-				now := time.Now()
 				w := atomic.LoadInt64(&written)
 
-				// instantaneous speed over the real elapsed time, smoothed
-				// into an exponential moving average to absorb the bursts
-				// caused by chunked-upload buffering.
-				if dt := now.Sub(lastTime).Seconds(); dt > 0 {
-					inst := float64(w-lastWritten) / dt
-					if speed == 0 {
-						speed = inst
-					} else {
-						speed = statusSpeedSmoothing*inst + (1-statusSpeedSmoothing)*speed
-					}
+				// average speed since the start of the upload: total bytes
+				// written over the total elapsed time. This absorbs the bursts
+				// caused by chunked-upload buffering on slow links, which made
+				// any instantaneous measurement useless.
+				var speed float64
+				if elapsed := time.Since(startTime).Seconds(); elapsed > 0 {
+					speed = float64(w) / elapsed
 				}
-				lastWritten = w
-				lastTime = now
 
 				status := fmt.Sprintf("uploading %s (%s)", upload.File.Filename, upload.File.Container)
 				if upload.File.Size > 0 {
