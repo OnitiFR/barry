@@ -4,7 +4,7 @@ package common
 const ClientVersion = "1.10.2"
 
 // ServerVersion of the server
-const ServerVersion = "0.24.2"
+const ServerVersion = "0.25.0"
 
 // ProtocolVersion implemented
 const ProtocolVersion = 2

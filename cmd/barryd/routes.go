@@ -65,4 +65,10 @@ func AddRoutes(app *server.App) {
 		Route:   "GET /destination",
 		Handler: controllers.GetDestinationsController,
 	})
+	app.AddRoute(&server.Route{
+		Route:        "GET " + app.HealthCheckPath,
+		Public:       true,
+		NoProtoCheck: true,
+		Handler:      controllers.HealthCheckController,
+	})
 }

@@ -32,8 +32,13 @@ type App struct {
 	AlertSender *AlertSender
 	Stats       *Stats
 	APIKeysDB   *APIKeyDatabase
+	InternalDB  *InternalDB
 	Rand        *rand.Rand
 	MuxAPI      *http.ServeMux
+
+	// HealthCheckPath is the (stable, randomized) public URL path used for
+	// unauthenticated liveness checks, e.g. "/health-8f3a2b".
+	HealthCheckPath string
 
 	routesAPI        map[string][]*Route
 	uploadQueueSize  int32
@@ -42,9 +47,16 @@ type App struct {
 
 // Database filenames
 const (
-	FilenameAPIDB     = "api-keys.db"
-	FilenameProjectDB = "projects.db"
+	FilenameAPIDB      = "api-keys.db"
+	FilenameProjectDB  = "projects.db"
+	FilenameInternalDB = "internal.db"
 )
+
+// internalKeyHealthCheckPath is the InternalDB key holding the health check path
+const internalKeyHealthCheckPath = "health_check_path"
+
+// healthCheckRandLength is the number of random chars in the health check path
+const healthCheckRandLength = 12
 
 // NewApp create a new application
 func NewApp(config *AppConfig, rand *rand.Rand) (*App, error) {
@@ -158,6 +170,26 @@ func (app *App) Init(trace bool, pretty bool) error {
 		return err
 	}
 	app.APIKeysDB = keysDB
+
+	internalDBFilename, err := app.LocalStoragePath("data", FilenameInternalDB)
+	if err != nil {
+		return err
+	}
+
+	internalDB, err := NewInternalDB(internalDBFilename, app.Log)
+	if err != nil {
+		return err
+	}
+	app.InternalDB = internalDB
+
+	// generate the health check path once, then keep it stable across restarts
+	app.HealthCheckPath, err = app.InternalDB.GetOrSet(internalKeyHealthCheckPath, func() string {
+		return "/health-" + RandString(healthCheckRandLength, app.Rand)
+	})
+	if err != nil {
+		return err
+	}
+	app.Log.Infof(MsgGlob, "health check URL path: %s", app.HealthCheckPath)
 
 	app.initSigHandler()
 
