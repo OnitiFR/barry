@@ -30,6 +30,20 @@ Then, launch `barry-server` and see the given `.barry.toml` sample content.
 Copy and modify `install/barryd.service` to your `/etc/systemd/system`,
 then reload systemd with `systemctl daemon-reload`.
 
+On Ubuntu, `needrestart` (called by `apt` and `unattended-upgrades`) restarts every
+service linked to an updated library, and `barryd` is linked to libc. It would then
+be restarted on almost every system update, breaking any ongoing operation (upload,
+archive…). It's strongly advised to opt out and to restart it by hand, at a chosen
+moment:
+```sh
+sudo mkdir -p /etc/needrestart/conf.d
+sudo tee /etc/needrestart/conf.d/barry.conf > /dev/null <<'EOF'
+$nrconf{override_rc}{qr(^barryd\.service$)} = 0;
+EOF
+```
+Note that `needrestart -r l` will still list the service when it runs on outdated
+libraries.
+
 You can configure alerts using samples in `etc/alerts` directory. Install `jq` utility
 if you want the use the sample `slack.sh` alert.
 
